@@ -3,6 +3,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plate">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1f6f5c">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>Plate tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -33,8 +39,10 @@ nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);b
 nav button{flex:1;background:transparent;color:var(--mu);border-radius:0;padding:14px 4px}nav button.on{color:var(--ac)}
 .empty{color:var(--mu);padding:8px 0}
 body:not(.ready) nav{display:none}
+nav button{font-size:13px}button[disabled]{opacity:.5}
+.bub{max-width:88%;padding:10px 12px;border-radius:14px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}.bub.u{background:var(--ac);color:var(--on);margin-left:auto}.bub.a{background:var(--card);border:1px solid var(--bd)}
 </style></head><body><main><div class="seg" id="pb"></div><div id="app"></div></main>
-<nav><button data-t="today" class="on">Today</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="more">Settings</button></nav>
+<nav><button data-t="today" class="on">Today</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s),r=n=>Math.round(n),r1=n=>Math.round(n*10)/10,uid=()=>crypto.randomUUID();
@@ -95,6 +103,49 @@ if(de.length){await ok(sb.from("entries").delete().in("id",de));de.forEach(k=>sn
 if(rd.del.length){await ok(sb.from("recipes").delete().in("id",rd.del));rd.del.forEach(k=>snap.r.delete(k))}
 if(fd.del.length){await ok(sb.from("foods").delete().in("id",fd.del));fd.del.forEach(k=>snap.f.delete(k))}
 for(const k of wd.del){const[u,d]=k.split("|");await ok(sb.from("weights").delete().eq("user_id",u).eq("weigh_date",d));snap.w.delete(k)}}
+let off=[],chat={msgs:[],busy:false,draft:""};
+try{chat.msgs=JSON.parse(localStorage.getItem("plate_chat")||"[]")}catch(e){}
+const chatSave=()=>{try{localStorage.setItem("plate_chat",JSON.stringify(chat.msgs.slice(-30)))}catch(e){}};
+const fmt=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+const token=async()=>{const{data:{session}}=await sb.auth.getSession();if(!session)throw new Error("Please sign in again.");return session.access_token};
+async function onlineSearch(){const q=(dq||"").trim(),e=$("#or");if(!e)return;
+if(q.length<2){e.innerHTML='<small>Type a product name or barcode in the box above first.</small>';return}
+e.innerHTML="<small>Searching Open Food Facts…</small>";
+try{const r=await fetch("/api/foods?"+(/^\d{8,14}$/.test(q)?"code=":"q=")+encodeURIComponent(q),{headers:{Authorization:"Bearer "+await token()}});const j=await r.json();if(!r.ok)throw new Error(j.error||"Search failed");off=j.items||[];offShow()}
+catch(x){e.innerHTML=`<small style="color:var(--dn)">${esc(x.message)}</small>`}}
+function offShow(){const e=$("#or");if(!e||!off.length&&!e.innerHTML.includes("Searching"))return;if(!off.length){e.innerHTML='<div class="empty">No products found.</div>';return}
+e.innerHTML=off.map((d,i)=>{const have=S.foods.some(f=>f.name.toLowerCase()===d.name.toLowerCase()),p=d.per100;return `<div class="row"><div><b>${esc(d.name)}</b><small>Per 100 g: ${r(p.k)} kcal, P ${r1(p.p)} C ${r1(p.c)} F ${r1(p.f)}${p.fi!=null?`, fibre ${r1(p.fi)}`:""}</small></div>${have?"<small>Added</small>":`<button onclick="addOff(${i})">Add</button>`}</div>`}).join("")+'<small style="margin-top:6px">Data from Open Food Facts. It is community-contributed, so check it against the packet.</small>'}
+function addOff(i){const d=off[i];if(!d)return;const p=d.per100;S.foods.push({id:uid(),name:d.name,k:p.k,p:p.p,c:p.c,f:p.f,fi:p.fi,su:p.su,sa:p.sa,sl:p.sl,sg:d.sg||0});save();render()}
+function withProf(id,fn){const o=S.cur;S.cur=id;try{return fn()}finally{S.cur=o}}
+function chatCtx(){const act=S.cur,d0=new Date(today()+"T12:00:00");
+const profs=S.profiles.map(p=>withProf(p.id,()=>{const G=goals(),nt=p.nt||NDEF;
+const tot=dt=>{const T={k:0,p:0,c:0,f:0,fi:0,su:0,sa:0,sl:0};p.log.filter(l=>l.date===dt).forEach(l=>{M.forEach(m=>T[m]+=l[m]);N.forEach(n=>{if(l[n]!=null)T[n]+=l[n]})});Object.keys(T).forEach(k=>T[k]=r1(T[k]));return T};
+const days=[];for(let i=13;i>=0;i--){const d=new Date(d0);d.setDate(d.getDate()-i);const s=d.toISOString().slice(0,10);if(p.log.some(l=>l.date===s))days.push({date:s,...tot(s)})}
+return{name:p.name,active:p.id===act,targets:{kcal:S.target||2000,protein_g:r(G.P),carbs_g:r(G.C),fat_g:r(G.F),fibre_g:nt.fi,saturates_max_pct_of_kcal:nt.sa,sugars_max_pct_of_kcal:nt.su,salt_max_g:nt.sl},goal:p.gl||null,today:tot(today()),days,weights:[...p.weights].sort((a,b)=>a.date.localeCompare(b.date)).slice(-10)}}));
+const rd=v=>v==null?null:r1(v);
+return{today:today(),weekday:d0.toLocaleDateString("en-GB",{weekday:"long"}),profiles:profs,items:items().map(i=>({id:i.id,name:i.name,type:i.t==="Recipes"?"recipe":"food",per100:{k:rd(i.per.k),p:rd(i.per.p),c:rd(i.per.c),f:rd(i.per.f),fi:rd(i.per.fi),su:rd(i.per.su),sa:rd(i.per.sa),sl:rd(i.per.sl)},serving_g:r(i.sg)}))}}
+async function sendChat(){const t=chat.draft.trim();if(!t||chat.busy)return;
+chat.msgs.push({role:"user",text:t});chat.draft="";chat.busy=true;chatSave();render();scrollTo(0,document.body.scrollHeight);
+try{const hist=chat.msgs.filter(m=>!m.err).slice(-12).map(m=>({role:m.role,text:m.text+(m.actions&&!m.done?" (awaiting confirmation)":m.doneText?" ("+m.doneText+")":"")}));
+const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+await token()},body:JSON.stringify({messages:hist,context:chatCtx()})});
+const j=await r.json();if(!r.ok)throw new Error(j.error||"Something went wrong");
+chat.msgs.push({role:"assistant",text:j.reply||"…",actions:j.actions&&j.actions.length?j.actions:null})}
+catch(e){chat.msgs.push({role:"assistant",text:"Sorry, I couldn’t answer that. "+e.message,err:true})}
+chat.busy=false;chatSave();render();scrollTo(0,document.body.scrollHeight)}
+function newChat(){chat.msgs=[];chat.draft="";chatSave();render()}
+function actInfo(a){let per,sg;if(a.kind==="database"&&a.food){per=a.food;sg=a.food.sg||100}else{const it=items().find(i=>i.id===a.id);if(!it)return"";per=it.per;sg=it.sg}const g=a.unit==="servings"?a.amount*sg:a.amount;return ", "+r(per.k*g/100)+" kcal"}
+function actHTML(m,i){if(m.done)return `<small>${esc(m.doneText||"")}</small>`;if(!m.actions)return"";
+return `<div class="card" style="margin:6px 0">${m.actions.map(a=>`<div class="row"><div><b>${esc(a.name)}</b><small>${esc(a.profile)}, ${esc(a.meal)}, ${esc(a.date)}: ${a.amount} ${a.unit==="servings"?(a.amount===1?"serving":"servings"):"g"}${actInfo(a)}</small></div></div>`).join("")}<div class="seg" style="margin-top:8px"><button onclick="runActions(${i})">Confirm</button><button class="alt" onclick="dismissActions(${i})">Dismiss</button></div></div>`}
+function runActions(i){const m=chat.msgs[i];if(!m||!m.actions||m.done)return;let n=0;
+m.actions.forEach(a=>{const pr=S.profiles.find(p=>p.name.toLowerCase()===String(a.profile||"").toLowerCase())||cp();let id=a.id;
+if(a.kind==="database"&&a.food){let f=S.foods.find(x=>x.name.toLowerCase()===a.food.name.toLowerCase());if(!f){f={id:uid(),name:a.food.name,k:a.food.k,p:a.food.p,c:a.food.c,f:a.food.f,fi:a.food.fi??null,su:a.food.su??null,sa:a.food.sa??null,sl:a.food.sl??null,sg:a.food.sg||0};S.foods.push(f)}id=f.id}
+const it=items().find(x=>x.id===id);if(!it)return;const g=a.unit==="servings"?a.amount*it.sg:a.amount;if(!(g>0))return;
+pr.log.push({id:uid(),date:/^\d{4}-\d{2}-\d{2}$/.test(a.date||"")?a.date:today(),meal:MEALS.includes(a.meal)?a.meal:autoMeal(),name:it.name,label:a.unit==="servings"?`${+a.amount} serving${+a.amount===1?"":"s"} (${r(g)} g)`:`${r(g)} g`,...mac(it,g)});n++});
+m.done=true;m.doneText=n?`Logged ${n} item${n===1?"":"s"}.`:"Nothing could be logged.";save();chatSave();render()}
+function dismissActions(i){const m=chat.msgs[i];if(!m)return;m.done=true;m.doneText="Dismissed.";chatSave();render()}
+function vChat(){const ms=chat.msgs.map((m,i)=>`<div class="bub ${m.role==="user"?"u":"a"}">${fmt(m.text)}</div>${m.role==="assistant"?actHTML(m,i):""}`).join("");
+return `<h2>Chat</h2>${ms||'<div class="empty">Ask about your day, get meal ideas, or tell me what you ate, for example “two eggs and toast for breakfast”. I’ll ask you to confirm before anything is logged.</div>'}${chat.busy?'<div class="bub a">Thinking…</div>':""}
+<div class="card" style="position:sticky;bottom:calc(58px + env(safe-area-inset-bottom,0px));margin:12px 0 0"><textarea id="ci" rows="2" placeholder="Ask a question or tell me what you ate" oninput="chat.draft=this.value">${esc(chat.draft)}</textarea><div class="seg" style="margin:8px 0 0"><button onclick="sendChat()"${chat.busy?" disabled":""}>Send</button><button class="alt" onclick="newChat()">New chat</button></div></div>`}
 async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){showLogin();return}
 try{ME=session.user;await loadAll(ME);document.body.classList.add("ready");$("#pb").style.display="";render()}
 catch(e){console.error(e);$("#app").innerHTML=`<div class="card"><h3>Couldn’t load your data</h3><small>${esc(e.message||String(e))}</small><div class="seg" style="margin-top:10px"><button onclick="location.reload()">Try again</button><button class="alt" onclick="signOut()">Sign out</button></div></div>`}}
@@ -209,7 +260,7 @@ const gs=[...MEALS,"Other"].map(m=>[m,L.filter(l=>(MEALS.includes(l.meal)?l.meal
 return gs.map(([m,e])=>`<p style="margin:12px 0 0"><b>${m}</b> <small style="display:inline">${r(e.reduce((a,l)=>a+l.k,0))} kcal, ${r(e.reduce((a,l)=>a+l.p,0))} g protein</small></p>`+e.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")).join("")}
 function delLog(id){S.log=S.log.filter(l=>l.id!==id);save();render()}
 function vFoods(){const n=(i,p,k)=>`<input id="${i}" type="number" inputmode="decimal" placeholder="${p}" value="${fd[k]??""}">`;
-return `<h2>Foods</h2><div class="card"><h3>UK starter ingredients</h3><input placeholder="Search, e.g. cheddar" value="${esc(dq)}" oninput="dsearch(this.value)"><small style="margin:6px 0">Approximate values per 100 g. Check them against your packet label.</small><div id="dr"></div></div><div class="card"><div class="g2"><input id="fn" class="w" placeholder="Name, e.g. Semi-skimmed milk" value="${esc(fd.name||"")}"><input id="fs" type="number" inputmode="decimal" class="w" placeholder="Serving size in g (optional)" value="${fd.sg||""}">
+return `<h2>Foods</h2><div class="card"><h3>UK starter ingredients</h3><input placeholder="Search a food, or type a barcode" value="${esc(dq)}" oninput="dsearch(this.value)"><small style="margin:6px 0">Approximate values per 100 g. Check them against your packet label.</small><div id="dr"></div><div class="seg" style="margin-top:8px"><button class="alt" onclick="onlineSearch()">Search UK products online</button></div><div id="or"></div></div><div class="card"><div class="g2"><input id="fn" class="w" placeholder="Name, e.g. Semi-skimmed milk" value="${esc(fd.name||"")}"><input id="fs" type="number" inputmode="decimal" class="w" placeholder="Serving size in g (optional)" value="${fd.sg||""}">
 ${n("fk","kcal per 100 g","k")}${n("fp","Protein per 100 g","p")}${n("fc","Carbs per 100 g","c")}${n("ff","Fat per 100 g","f")}${n("fb","Fibre per 100 g (optional)","fi")}${n("fg","Sugars per 100 g (optional)","su")}${n("fa","Saturates per 100 g (optional)","sa")}${n("fz","Salt per 100 g (optional)","sl")}</div><div class="seg"><button onclick="addFood()">${fd.id?"Update food":"Save food"}</button>${fd.id?'<button class="alt" onclick="cancelFood()">Cancel</button>':""}</div></div>
 <div class="card">${S.foods.length?S.foods.map(f=>`<div class="row"><div><b>${esc(f.name)}</b><small>Per 100 g: ${r(f.k)} kcal, P ${r1(f.p)} C ${r1(f.c)} F ${r1(f.f)}${f.fi!=null?`, fibre ${r1(f.fi)}`:""}</small></div><div style="display:flex;gap:4px"><button class="alt" onclick="editFood('${f.id}')">Edit</button><button class="x" onclick="delFood('${f.id}')">Delete</button></div></div>`).join(""):'<div class="empty">No foods yet. Copy values from the packet label.</div>'}</div>`}
 function addFood(){const v=i=>+$("#"+i).value||0,nv=i=>{const x=$("#"+i).value;return x===""?null:+x},name=$("#fn").value.trim();if(!name)return;
@@ -307,7 +358,7 @@ function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><sma
 <div class="card"><h3>Backup</h3><small style="margin-bottom:8px">Your data is saved to your account. Export a copy now and then as a backup. To bring in an older backup, paste it here and choose which profile in the file is yours.</small><textarea id="bk" rows="5" placeholder="Export fills this box. Paste a backup here to import."></textarea>
 <small style="margin-top:10px">Import from file profile</small><select id="ip"><option value="0">First profile</option><option value="1">Second profile</option></select><div class="seg" style="margin-top:10px"><button onclick="exp()">Export</button><button class="alt" onclick="importLegacy()">Import</button></div><small id="bm"></small></div>`}
 function exp(){const b=$("#bk");b.value=JSON.stringify(S);b.select();try{navigator.clipboard.writeText(b.value);$("#bm").textContent="Exported and copied."}catch(e){$("#bm").textContent="Exported. Copy the text above."}}
-function render(){$("#pb").innerHTML=S.profiles.map(p=>`<button class="${p.id===S.cur?"":"alt"}" onclick="setProf('${p.id}')">${esc(p.name)}</button>`).join("")+`<small id="sync" style="margin:0;align-self:center;min-width:64px;text-align:right">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods")dsearch(dq)}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,0)});
+function render(){$("#pb").innerHTML=S.profiles.map(p=>`<button class="${p.id===S.cur?"":"alt"}" onclick="setProf('${p.id}')">${esc(p.name)}</button>`).join("")+`<small id="sync" style="margin:0;align-self:center;min-width:64px;text-align:right">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
 boot();
 </script></body></html>
