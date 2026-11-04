@@ -69,7 +69,7 @@ body:not(.ready) nav{display:none}
 .mtop button{padding:8px 14px}
 .mtl{display:flex;align-items:center;gap:12px}.mtl b{font-size:20px}
 .card>.addbox{margin:0;padding:0;border:0}
-</style></head><body><main><div id="pb"></div><div id="app"></div></main>
+</style></head><body><main><div id="pb"></div><div id="banner"></div><div id="app"></div></main>
 <nav><button data-t="today" class="on">Log</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
@@ -102,7 +102,7 @@ S.foods=foods.map(x=>({id:x.id,name:x.name,k:+x.kcal,p:+x.protein,c:+x.carbs,f:+
 S.recipes=recs.map(x=>({id:x.id,name:x.name,cooked:+x.cooked_weight_g||0,servings:+x.servings||1,ings:(x.recipe_ingredients||[]).sort((a,b)=>a.sort-b.sort).map(i=>({fid:i.food_id,g:+i.grams}))}));
 S.profiles=mem.slice().sort((a,b)=>(b.user_id===user.id)-(a.user_id===user.id)).map(m=>{const s=sets.find(x=>x.user_id===m.user_id)||{};return{id:m.user_id,name:m.display_name,target:s.calorie_target||2000,mt:ne(s.macro_targets),nt:ne(s.nutrient_targets),gl:ne(s.goal),log:ents.filter(e=>e.user_id===m.user_id).map(rowToEntry),weights:wts.filter(w=>w.user_id===m.user_id).map(w=>({date:w.weigh_date,kg:+w.kg}))}});
 let sel=user.id;try{const c=localStorage.getItem("plate_cur");if(S.profiles.some(p=>p.id===c))sel=c}catch(e){}
-S.cur=sel;mark();READY=true}
+S.cur=sel;mark();READY=true;outboxRestore()}
 const EK=l=>JSON.stringify([l.date,l.meal,l.name,l.label,l.k,l.p,l.c,l.f,l.fi,l.su,l.fr,l.sa,l.sl,l.inc||null]);
 const FK=f=>JSON.stringify([f.name,f.k,f.p,f.c,f.f,f.fi??null,f.su??null,f.fr??null,f.sa??null,f.sl??null,f.sg||0]);
 const RK=r=>JSON.stringify([r.name,r.cooked||0,r.servings||1,r.ings.map(i=>[i.fid,+i.g])]);
@@ -110,29 +110,58 @@ const WK=w=>String(w.kg),SK=p=>JSON.stringify([p.target,p.mt??null,p.nt??null,p.
 let snap={f:new Map(),r:new Map(),e:new Map(),w:new Map(),s:""},busy=false,again=false,tm=null,dirty=false;
 function mark(){snap={f:new Map(S.foods.map(x=>[x.id,FK(x)])),r:new Map(S.recipes.map(x=>[x.id,RK(x)])),e:new Map(),w:new Map(),s:new Map()};S.profiles.forEach(p=>{p.log.forEach(l=>snap.e.set(l.id,EK(l)));p.weights.forEach(w=>snap.w.set(p.id+"|"+w.date,WK(w)));snap.s.set(p.id,SK(p))})}
 const chg=(map,items,key,id)=>{const ids=new Set(items.map(id));return{up:items.filter(x=>map.get(id(x))!==key(x)),del:[...map.keys()].filter(k=>!ids.has(k))}};
-function status(t,bad){syncTxt=t;const e=$("#sync");if(e){e.textContent=t;e.style.color=bad?"var(--dn)":""}}
-function save(){if(!READY)return;dirty=true;status("Saving…");clearTimeout(tm);tm=setTimeout(push,400)}
-async function push(){if(busy){again=true;return}busy=true;try{await pushAll();dirty=false;status("Saved")}catch(e){console.error(e);status("Not saved, retrying",true);tm=setTimeout(push,8000)}busy=false;if(again){again=false;push()}}
-async function pushAll(){const now=new Date().toISOString();
-const fd=chg(snap.f,S.foods,FK,x=>x.id);
-if(fd.up.length){await ok(sb.from("foods").upsert(fd.up.map(f=>({id:f.id,household_id:HH,name:f.name,kcal:f.k,protein:f.p,carbs:f.c,fat:f.f,fibre:f.fi??null,sugars:f.su??null,free_sugars:f.fr??null,saturates:f.sa??null,salt:f.sl??null,serving_g:f.sg||null,updated_at:now}))));fd.up.forEach(f=>snap.f.set(f.id,FK(f)))}
-const rd=chg(snap.r,S.recipes,RK,x=>x.id);
-for(const r of rd.up){await ok(sb.from("recipes").upsert({id:r.id,household_id:HH,name:r.name,cooked_weight_g:r.cooked||null,servings:r.servings||1,updated_at:now}));
-await ok(sb.from("recipe_ingredients").delete().eq("recipe_id",r.id));
-if(r.ings.length)await ok(sb.from("recipe_ingredients").insert(r.ings.map((i,n)=>({recipe_id:r.id,food_id:i.fid,grams:+i.g,sort:n}))));snap.r.set(r.id,RK(r))}
+let syncErr="",noFS=false,fsWarn=false;
+const errText=e=>String((e&&(e.message||e.details))||e||"Unknown error");
+function status(t,bad){syncTxt=t;const e=$("#sync");if(e){e.textContent=t;e.style.color=bad?"var(--dn)":""}banner()}
+function banner(){const b=$("#banner");if(!b)return;let h="";
+if(syncErr){const m=syncErr,hint=/JWT|expired|401/i.test(m)?"Your sign-in may have expired. Sign out in Settings and back in.":/fetch|network|offline/i.test(m)?"You may be offline. Your changes are kept on this device and will retry.":/row-level security|policy|permission/i.test(m)?"The database blocked this save. Check the SQL policies from the setup guide.":"";
+h=`<div class="card" style="border-color:var(--dn)"><b style="color:var(--dn)">Couldn’t save to your account</b><small style="margin-top:4px">${esc(m)}</small>${hint?`<small>${hint}</small>`:""}<small>Your latest changes are kept on this device and will retry.</small><div class="seg" style="margin-top:8px"><button onclick="retrySave()">Try again</button><button class="alt" onclick="discardOutbox()">Discard unsaved changes</button></div></div>`}
+else if(fsWarn)h=`<div class="card" style="border-color:var(--f)"><b>Free sugars aren’t saving yet</b><small style="margin-top:4px">Everything else is saving. Add the free sugars columns in Supabase (the two ALTER lines from the update notes), then tap Check again.</small><div class="seg" style="margin-top:8px"><button onclick="retryFS()">Check again</button></div></div>`;
+b.innerHTML=h}
+function retrySave(){clearTimeout(tm);push()}
+function retryFS(){noFS=false;fsWarn=false;snap.e.forEach((v,k)=>snap.e.set(k,""));snap.f.forEach((v,k)=>snap.f.set(k,""));banner();dirty=true;push()}
+function discardOutbox(){try{localStorage.removeItem("plate_outbox")}catch(e){}location.reload()}
+// Keep anything not yet confirmed saved on this device, so a failed save never loses data.
+function outboxWrite(){const o={f:[],r:[],e:[],w:[],s:[]};
+S.foods.forEach(x=>{if(snap.f.get(x.id)!==FK(x))o.f.push(x)});
+S.recipes.forEach(x=>{if(snap.r.get(x.id)!==RK(x))o.r.push(x)});
+S.profiles.forEach(p=>{p.log.forEach(l=>{if(snap.e.get(l.id)!==EK(l))o.e.push({u:p.id,l})});p.weights.forEach(w=>{if(snap.w.get(p.id+"|"+w.date)!==WK(w))o.w.push({u:p.id,w})});if(snap.s.get(p.id)!==SK(p))o.s.push({u:p.id,target:p.target,mt:p.mt,nt:p.nt,gl:p.gl})});
+try{if(o.f.length||o.r.length||o.e.length||o.w.length||o.s.length)localStorage.setItem("plate_outbox",JSON.stringify({h:HH,o}));else localStorage.removeItem("plate_outbox")}catch(e){}}
+function outboxRestore(){let x=null;try{x=JSON.parse(localStorage.getItem("plate_outbox")||"null")}catch(e){}if(!x||x.h!==HH)return;const o=x.o;let n=0;
+const put=(arr,it,key)=>{const i=arr.findIndex(y=>key(y)===key(it));if(i>=0)arr[i]=it;else arr.push(it);n++};
+(o.f||[]).forEach(f=>put(S.foods,f,y=>y.id));(o.r||[]).forEach(r=>put(S.recipes,r,y=>y.id));
+(o.e||[]).forEach(({u,l})=>{const p=S.profiles.find(p=>p.id===u);if(p)put(p.log,l,y=>y.id)});
+(o.w||[]).forEach(({u,w})=>{const p=S.profiles.find(p=>p.id===u);if(p)put(p.weights,w,y=>y.date)});
+(o.s||[]).forEach(s=>{const p=S.profiles.find(p=>p.id===s.u);if(p){p.target=s.target;p.mt=s.mt;p.nt=s.nt;p.gl=s.gl;n++}});
+if(n){dirty=true;setTimeout(push,300)}}
+function save(){if(!READY)return;dirty=true;status("Saving…");outboxWrite();clearTimeout(tm);tm=setTimeout(push,400)}
+async function push(){if(busy){again=true;return}busy=true;
+try{await pushAll();syncErr="";dirty=false;outboxWrite();status("Saved")}
+catch(e){console.error(e);const m=errText(e);if(/free_sugars/i.test(m)&&!noFS){noFS=true;fsWarn=true;again=true}else{syncErr=m;status("Not saved",true);clearTimeout(tm);tm=setTimeout(push,20000)}}
+outboxWrite();busy=false;if(again){again=false;push()}}
+const erowX=(l,u)=>{const r=erow(l,u);if(noFS)delete r.free_sugars;return r};
+async function putEntries(list,mode){for(let i=0;i<list.length;i+=200){const part=list.slice(i,i+200);
+try{await ok(sb.from("entries")[mode](part.map(([l,u])=>erowX(l,u))));part.forEach(([l])=>snap.e.set(l.id,EK(l)))}
+catch(e){if(/free_sugars/i.test(errText(e)))throw e;let first=null;for(const[l,u]of part){try{await ok(sb.from("entries")[mode](erowX(l,u)));snap.e.set(l.id,EK(l))}catch(x){first=first||x}}if(first)throw first}}}
+async function pushAll(){const now=new Date().toISOString(),errs=[],step=async f=>{try{await f()}catch(e){errs.push(e)}};
+const fsv=v=>noFS?{}:{free_sugars:v};
+const fd=chg(snap.f,S.foods,FK,x=>x.id),rd=chg(snap.r,S.recipes,RK,x=>x.id);
 const all=[];S.profiles.forEach(p=>p.log.forEach(l=>all.push([l,p.id])));
-const ne2=all.filter(([l])=>!snap.e.has(l.id)),ch2=all.filter(([l])=>snap.e.has(l.id)&&snap.e.get(l.id)!==EK(l));
-if(ne2.length){await ok(sb.from("entries").insert(ne2.map(([l,u])=>erow(l,u))));ne2.forEach(([l])=>snap.e.set(l.id,EK(l)))}
-for(let i=0;i<ch2.length;i+=400){const part=ch2.slice(i,i+400);await ok(sb.from("entries").upsert(part.map(([l,u])=>erow(l,u))));part.forEach(([l])=>snap.e.set(l.id,EK(l)))}
 const wall=[];S.profiles.forEach(p=>p.weights.forEach(w=>wall.push({p:p.id,date:w.date,kg:w.kg,k:p.id+"|"+w.date})));
 const wd=chg(snap.w,wall,x=>String(x.kg),x=>x.k);
-if(wd.up.length){await ok(sb.from("weights").upsert(wd.up.map(x=>({user_id:x.p,weigh_date:x.date,kg:x.kg}))));wd.up.forEach(x=>snap.w.set(x.k,String(x.kg)))}
-for(const p of S.profiles){const sk=SK(p);if(sk!==snap.s.get(p.id)){await ok(sb.from("user_settings").upsert({user_id:p.id,calorie_target:p.target,macro_targets:p.mt||{},nutrient_targets:p.nt||{},goal:p.gl||{},updated_at:now}));snap.s.set(p.id,sk)}}
-const ids=new Set(all.map(([l])=>l.id)),de=[...snap.e.keys()].filter(k=>!ids.has(k));
-if(de.length){await ok(sb.from("entries").delete().in("id",de));de.forEach(k=>snap.e.delete(k))}
-if(rd.del.length){await ok(sb.from("recipes").delete().in("id",rd.del));rd.del.forEach(k=>snap.r.delete(k))}
-if(fd.del.length){await ok(sb.from("foods").delete().in("id",fd.del));fd.del.forEach(k=>snap.f.delete(k))}
-for(const k of wd.del){const[u,d]=k.split("|");await ok(sb.from("weights").delete().eq("user_id",u).eq("weigh_date",d));snap.w.delete(k)}}
+await step(async()=>{if(fd.up.length){await ok(sb.from("foods").upsert(fd.up.map(f=>({id:f.id,household_id:HH,name:f.name,kcal:f.k,protein:f.p,carbs:f.c,fat:f.f,fibre:f.fi??null,sugars:f.su??null,...fsv(f.fr??null),saturates:f.sa??null,salt:f.sl??null,serving_g:f.sg||null,updated_at:now}))));fd.up.forEach(f=>snap.f.set(f.id,FK(f)))}});
+await step(async()=>{for(const r of rd.up){await ok(sb.from("recipes").upsert({id:r.id,household_id:HH,name:r.name,cooked_weight_g:r.cooked||null,servings:r.servings||1,updated_at:now}));
+await ok(sb.from("recipe_ingredients").delete().eq("recipe_id",r.id));
+if(r.ings.length)await ok(sb.from("recipe_ingredients").insert(r.ings.map((i,n)=>({recipe_id:r.id,food_id:i.fid,grams:+i.g,sort:n}))));snap.r.set(r.id,RK(r))}});
+await step(async()=>{await putEntries(all.filter(([l])=>!snap.e.has(l.id)),"insert")});
+await step(async()=>{await putEntries(all.filter(([l])=>snap.e.has(l.id)&&snap.e.get(l.id)!==EK(l)),"upsert")});
+await step(async()=>{if(wd.up.length){await ok(sb.from("weights").upsert(wd.up.map(x=>({user_id:x.p,weigh_date:x.date,kg:x.kg}))));wd.up.forEach(x=>snap.w.set(x.k,String(x.kg)))}});
+for(const p of S.profiles){await step(async()=>{const sk=SK(p);if(sk!==snap.s.get(p.id)){await ok(sb.from("user_settings").upsert({user_id:p.id,calorie_target:p.target,macro_targets:p.mt||{},nutrient_targets:p.nt||{},goal:p.gl||{},updated_at:now}));snap.s.set(p.id,sk)}})}
+await step(async()=>{const ids=new Set(all.map(([l])=>l.id)),de=[...snap.e.keys()].filter(k=>!ids.has(k));if(de.length){await ok(sb.from("entries").delete().in("id",de));de.forEach(k=>snap.e.delete(k))}});
+await step(async()=>{if(rd.del.length){await ok(sb.from("recipes").delete().in("id",rd.del));rd.del.forEach(k=>snap.r.delete(k))}});
+await step(async()=>{if(fd.del.length){await ok(sb.from("foods").delete().in("id",fd.del));fd.del.forEach(k=>snap.f.delete(k))}});
+await step(async()=>{for(const k of wd.del){const[u,d]=k.split("|");await ok(sb.from("weights").delete().eq("user_id",u).eq("weigh_date",d));snap.w.delete(k)}});
+if(errs.length)throw errs.find(e=>/free_sugars/i.test(errText(e)))||errs[0]}
 let off=[],chat={msgs:[],busy:false,draft:"",deep:false};
 try{chat.msgs=JSON.parse(localStorage.getItem("plate_chat")||"[]")}catch(e){}
 const chatSave=()=>{try{localStorage.setItem("plate_chat",JSON.stringify(chat.msgs.slice(-30)))}catch(e){}};
