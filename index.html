@@ -39,10 +39,38 @@ nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);b
 nav button{flex:1;background:transparent;color:var(--mu);border-radius:0;padding:14px 4px}nav button.on{color:var(--ac)}
 .empty{color:var(--mu);padding:8px 0}
 body:not(.ready) nav{display:none}
+#pb{display:flex;justify-content:center;align-items:center;position:relative;margin-bottom:12px}
+#pb select{width:auto;min-width:180px;text-align:center;text-align-last:center;font-weight:700;border-radius:999px;padding:9px 16px}
+#pb small{position:absolute;right:0;margin:0;font-size:12px}
+.tg{display:inline-flex;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:2px;flex:none}
+.tg button{background:transparent;color:var(--mu);padding:5px 11px;font-size:12px;font-weight:600;border-radius:999px}
+.tg button.on{background:var(--ac);color:var(--on)}
+.wkrow{display:flex;align-items:center;gap:10px;margin-top:14px}
+.wk{display:flex;flex:1;justify-content:space-between}
+.dot{background:none;color:var(--mu);border:0;padding:2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500}
+.dot i{width:18px;height:18px;border-radius:50%;border:2px solid var(--bd);display:block}
+.dot.on i{background:var(--ac);border-color:var(--ac)}
+.dot.sel i{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--tx)}
+.dot.sel span{color:var(--tx);font-weight:700}
+.streak{display:flex;align-items:center;gap:6px;padding:6px 14px 6px 8px;border-radius:999px;background:linear-gradient(135deg,#f59e0b,#e8590c);color:#fff;box-shadow:0 4px 14px rgba(232,89,12,.35);flex:none}
+.streak b{display:block;font-size:20px;line-height:1}.streak small{display:block;color:inherit;opacity:.9;font-size:10px;margin:0}
+.streak.hot svg{animation:flick 1.6s ease-in-out infinite;transform-origin:50% 90%}
+.streak.off{background:var(--bd);color:var(--mu);box-shadow:none}.streak.off svg{filter:grayscale(1);opacity:.55}
+@keyframes flick{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.1) rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.streak.hot svg{animation:none}}
+.meal{padding:0;overflow:hidden}
+.meal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 8px;cursor:pointer}
+.meal .mh b{font-size:17px}.meal .mk{font-size:14px;color:var(--mu)}.meal .mk b{font-size:22px;color:var(--tx)}
+.meal .ms{display:flex;gap:6px 14px;flex-wrap:wrap;padding:0 14px 14px;font-size:13px;color:var(--mu)}
+.meal .ms span{display:flex;align-items:center;gap:5px}.meal .ms i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.meal.open{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.meal .mb{border-top:1px solid var(--bd);padding:4px 14px 14px}
+.meal .addbox{margin-top:10px;padding-top:12px;border-top:1px dashed var(--bd)}
+
 nav button{font-size:13px}button[disabled]{opacity:.5}
 .bub{max-width:88%;padding:10px 12px;border-radius:14px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}.bub.u{background:var(--ac);color:var(--on);margin-left:auto}.bub.a{background:var(--card);border:1px solid var(--bd)}
-</style></head><body><main><div class="seg" id="pb"></div><div id="app"></div></main>
-<nav><button data-t="today" class="on">Today</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
+</style></head><body><main><div id="pb"></div><div id="app"></div></main>
+<nav><button data-t="today" class="on">Log</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s),r=n=>Math.round(n),r1=n=>Math.round(n*10)/10,uid=()=>crypto.randomUUID();
@@ -232,22 +260,37 @@ const lastW=()=>{const a=[...S.weights].sort((x,y)=>x.date.localeCompare(y.date)
 function goals(K0){const t=cp().mt||DEF,K=K0||S.target||2000;let P,C,F;if(t.m==="g"){P=t.gp;C=t.gc;F=t.gf}else if(t.m==="kg"){const w=lastW();P=w?(t.kg||0)*w:K*(t.p||DEF.p)/100/4;const rest=Math.max(0,K-P*4),cf=(t.c+t.f)||1;C=rest*t.c/cf/4;F=rest*t.f/cf/9}else{P=K*t.p/100/4;C=K*t.c/100/4;F=K*t.f/100/9}return{P,C,F}}
 const pb=(l,v,g,c,mx)=>`<div style="margin-top:10px"><div style="display:flex;justify-content:space-between"><span>${l}</span><span>${S.left?(g-v>=0?`<b style="color:var(${c})">${r1(g-v)}</b> g left`:`<b style="color:var(--dn)">${r1(v-g)}</b> g over`):`<b style="color:var(${c})">${r1(v)}</b> of ${mx?"max ":""}${r(g)} g`}</span></div><div class="bar" style="margin:4px 0"><i style="width:${Math.min(100,v/(g||1)*100)}%;background:var(${c})"></i></div></div>`;
 const gramsOf=it=>add.mode==="s"?(+add.amt||0)*it.sg:(+add.amt||0);
+const FLAME='<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><defs><linearGradient id="flg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3bf"/><stop offset="1" stop-color="#ffd8a8"/></linearGradient></defs><path d="M12 1.5c.6 3.2 2.6 4.6 4.3 6.6 1.5 1.8 2.7 3.9 2.7 6.4A7 7 0 0 1 5 14.5c0-2 .8-3.6 2-5 .3 1.6 1 2.6 2.1 3.1C8.6 9 9.5 4.8 12 1.5z" fill="url(#flg)"/><path d="M12 22a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1.1-2.7 2-3.7.5-.6.9-1.2 1.1-2 1.6 1.4 3.7 3.2 3.7 5.7A3.4 3.4 0 0 1 12 22z" fill="#ea580c" opacity=".55"/></svg>';
+function mealStats(E){const T={k:0,p:0,c:0,f:0,fi:0};E.forEach(l=>{T.k+=l.k||0;T.p+=l.p||0;T.c+=l.c||0;T.f+=l.f||0;T.fi+=l.fi||0});return T}
+function streakInfo(){const ds=new Set(cp().log.map(l=>l.date)),iso=d=>d.toISOString().slice(0,10);let d=new Date(today()+"T12:00:00");if(!ds.has(iso(d)))d.setDate(d.getDate()-1);let n=0;while(ds.has(iso(d))){n++;d.setDate(d.getDate()-1)}
+const wk=[];for(let i=6;i>=0;i--){const x=new Date(today()+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"})})}return{n,wk}}
+function goDate(d){date=d;render()}
+function setLeft(v){S.left=v;try{localStorage.setItem("plate_left",v?"1":"0")}catch(e){}render()}
+function openMeal(m){add.open=add.open===m?null:m;if(add.open){add.meal=m;add.id="";add.q=""}render()}
+function entRows(E){return E.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")}
+function addBox(m){const sel=items().find(i=>i.id===add.id);
+return `<div class="addbox"><small style="margin:0 0 8px">Add to ${m.toLowerCase()}</small>`+(sel?`<div class="row" style="border:0;padding:0 0 10px"><div><b>${esc(sel.name)}</b><small>1 serving is ${r(sel.sg)} g</small></div><button class="alt" onclick="pickItem('')">Change</button></div>
+<div class="seg"><button class="${add.mode==="s"?"":"alt"}" onclick="setMode('s')">Servings</button><button class="${add.mode==="g"?"":"alt"}" onclick="setMode('g')">Grams</button></div>
+${add.alt?`<small>${esc(cp().name)}</small>`:""}<input id="amt" type="number" inputmode="decimal" value="${add.amt}" oninput="setAmt(this.value)"><div class="prev" id="prev"></div>
+<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" style="width:auto" ${add.alt?"checked":""} onchange="setAlt(this.checked)">Also log for ${esc(other().name)}</label>${add.alt?`<small>${esc(other().name)}</small><input id="amt2" type="number" inputmode="decimal" value="${add.amt2}" oninput="setAmt2(this.value)"><div class="prev" id="prev2"></div>`:""}<button onclick="logIt()">${add.alt?"Add to both logs":"Add to log"}</button>`
+:`<input id="q" placeholder="Search foods and recipes" autocomplete="off" value="${esc(add.q)}" oninput="qSearch(this.value)"><div id="res"></div>`)+`</div>`}
+function mealCard(m,E,canAdd){const T=mealStats(E),open=add.open===m;
+return `<div class="card meal${open?" open":""}"><div class="mh" onclick="openMeal('${m}')"><div style="display:flex;align-items:center;gap:10px"><span style="color:var(--mu)">${open?"▾":"▸"}</span><div><b>${m}</b><small style="margin:0">${E.length?E.length+(E.length===1?" item":" items"):"Nothing logged"}</small></div></div><div class="mk"><b>${r(T.k)}</b> kcal</div></div>
+<div class="ms"><span><i style="background:var(--p)"></i>P ${r(T.p)} g</span><span><i style="background:var(--c)"></i>C ${r(T.c)} g</span><span><i style="background:var(--f)"></i>F ${r(T.f)} g</span><span><i style="background:var(--ac)"></i>Fibre ${r(T.fi)} g</span></div>
+${open?`<div class="mb">${entRows(E)}${canAdd?addBox(m):""}</div>`:""}</div>`}
 function vToday(){const L=S.log.filter(l=>l.date===date),T={k:0,p:0,c:0,f:0};L.forEach(l=>M.forEach(m=>T[m]+=l[m]));
 const NT={},NM={},NI={},G=goals(),K=S.target||2000;N.forEach(n=>{NT[n]=0;NM[n]=0;NI[n]=0;L.forEach(l=>{if(l[n]==null)NM[n]++;else{NT[n]+=l[n];if(l.inc&&l.inc[n])NI[n]++}})});
 const nt=cp().nt||NDEF;const NG=[["fi","Fibre",nt.fi,0],["sa","Saturates",K*nt.sa/100/9,1],["fr","Free sugars",K*nt.su/100/4,1],["sl","Salt",nt.sl,1]];
-const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3])+(L.length&&(NM[a[0]]||NI[a[0]])?`<small>${NM[a[0]]?`${NM[a[0]]} of ${L.length} entries have no ${a[1].toLowerCase()} data`:""}${NM[a[0]]&&NI[a[0]]?", ":""}${NI[a[0]]?`${NI[a[0]]} recipe${NI[a[0]]===1?"":"s"} only partly counted`:""}</small>`:"")).join("")+'<small style="margin-top:8px">Free sugars leave out the sugars naturally in whole fruit, vegetables and plain milk. Set them on each food.</small>';
-const its=items(),opt=g=>`<optgroup label="${g}">`+its.filter(i=>i.t===g).map(i=>`<option value="${i.id}"${i.id===add.id?" selected":""}>${esc(i.name)}</option>`).join("")+"</optgroup>";
-const pct=Math.min(100,T.k/(S.target||1)*100);
-return `<h2>Today’s log</h2><div class="card"><div style="display:flex;gap:6px"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" onchange="date=this.value||today();render()"><button class="alt" onclick="shiftDay(1)">›</button><button class="alt" onclick="goToday()">Today</button></div>
-<div class="big" style="margin-top:12px">${S.left?r(Math.abs(S.target-T.k)):r(T.k)} <span>${S.left?(S.target>=T.k?"kcal left":"kcal over"):`of ${S.target} kcal`}</span></div><div class="bar"><i style="width:${pct}%"></i></div>
-${pb("Protein",T.p,G.P,"--p")}${pb("Carbs",T.c,G.C,"--c")}${pb("Fat",T.f,G.F,"--f")}<button class="alt" style="margin-top:12px;width:100%" onclick="toggleLeft()">${S.left?"Show eaten so far":"Show what’s left"}</button></div>
-<div class="card"><h3>Fibre and other nutrients</h3>${nrow}</div>
-<div class="card"><h3>Add an entry</h3>${(()=>{const sel=its.find(i=>i.id===add.id);return sel?`<div class="row" style="border:0;padding:0 0 10px"><div><b>${esc(sel.name)}</b><small>1 serving is ${r(sel.sg)} g</small></div><button class="alt" onclick="pickItem('')">Change</button></div>
-<div class="seg">${MEALS.map(m=>`<button style="padding:10px 4px" class="${add.meal===m?"":"alt"}" onclick="setMeal('${m}')">${m}</button>`).join("")}</div>
-<div class="seg"><button class="${add.mode==="s"?"":"alt"}" onclick="setMode('s')">Servings</button><button class="${add.mode==="g"?"":"alt"}" onclick="setMode('g')">Grams</button></div>
-${add.alt?`<small>${esc(cp().name)}</small>`:""}<input id="amt" type="number" inputmode="decimal" value="${add.amt}" oninput="setAmt(this.value)"><div class="prev" id="prev"></div>
-<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" style="width:auto" ${add.alt?"checked":""} onchange="setAlt(this.checked)">Also log for ${esc(other().name)}</label>${add.alt?`<small>${esc(other().name)}</small><input id="amt2" type="number" inputmode="decimal" value="${add.amt2}" oninput="setAmt2(this.value)"><div class="prev" id="prev2"></div>`:""}<button onclick="logIt()">${add.alt?"Add to both logs":"Add to log"}</button>`:`<input id="q" placeholder="Search foods and recipes" autocomplete="off" value="${esc(add.q)}" oninput="qSearch(this.value)"><div id="res"></div>`})()}</div>
-<div class="card"><h3>Entries</h3>${entHTML(L)}</div>`}
+const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3])+(L.length&&(NM[a[0]]||NI[a[0]])?`<small>${NM[a[0]]?`${NM[a[0]]} of ${L.length} entries have no ${a[1].toLowerCase()} data`:""}${NM[a[0]]&&NI[a[0]]?", ":""}${NI[a[0]]?`${NI[a[0]]} recipe${NI[a[0]]===1?"":"s"} only partly counted`:""}</small>`:"")).join("");
+const pct=Math.min(100,T.k/(S.target||1)*100),st=streakInfo();
+const dateCard=`<div class="card"><div style="display:flex;gap:6px;align-items:center"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" onchange="date=this.value||today();render()" style="flex:1"><button class="alt" onclick="shiftDay(1)">›</button></div>
+<div class="wkrow"><div class="wk">${st.wk.map(x=>`<button class="dot${x.l?" on":""}${x.d===date?" sel":""}" onclick="goDate('${x.d}')" aria-label="${x.d}"><i></i><span>${x.w}</span></button>`).join("")}</div>
+<div class="streak${st.n?"":" off"}${st.n>=3?" hot":""}" title="Days in a row with something logged">${FLAME}<div><b>${st.n}</b><small>day streak</small></div></div></div></div>`;
+const calCard=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div class="big">${S.left?r(Math.abs(S.target-T.k)):r(T.k)} <span>${S.left?(S.target>=T.k?"kcal left":"kcal over"):`of ${S.target} kcal`}</span></div>
+<div class="tg"><button class="${S.left?"on":""}" onclick="setLeft(true)">Left</button><button class="${S.left?"":"on"}" onclick="setLeft(false)">Eaten</button></div></div><div class="bar"><i style="width:${pct}%"></i></div>
+${pb("Protein",T.p,G.P,"--p")}${pb("Carbs",T.c,G.C,"--c")}${pb("Fat",T.f,G.F,"--f")}</div>`;
+const oth=L.filter(l=>!MEALS.includes(l.meal));
+return dateCard+calCard+`<div class="card"><h3>Fibre and other nutrients</h3>${nrow}</div>`+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m),true)).join("")+(oth.length?mealCard("Other",oth,false):"")}
 function prev(){const it=items().find(i=>i.id===add.id);[["#prev",add.amt],["#prev2",add.amt2]].forEach(([s,a])=>{const e=$(s);if(!e)return;if(!it){e.textContent="";return}const g=gr(it,a),m=mac(it,g);e.textContent=`${r(g)} g: ${r(m.k)} kcal, P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}`})}
 function setProf(id){S.cur=id;add.id="";add.q="";try{localStorage.setItem("plate_cur",id)}catch(e){}render()}
 function renameProf(id,v){const p=S.profiles.find(x=>x.id===id);if(p&&v.trim()){p.name=v.trim();save();render()}}
@@ -378,12 +421,12 @@ const sel=PR.findIndex(a=>t.m==="pct"&&t.p===a[1]&&t.c===a[2]&&t.f===a[3]),pre=P
 const fields=t.m==="g"?inp("gp","Protein (g)")+inp("gc","Carbs (g)")+inp("gf","Fat (g)"):t.m==="kg"?inp("kg","Protein g per kg")+inp("c","Carbs % of the rest")+inp("f","Fat % of the rest"):inp("p","Protein %")+inp("c","Carbs %")+inp("f","Fat %");
 const kc=G.P*4+G.C*4+G.F*9,sum=t.m==="pct"?t.p+t.c+t.f:0;
 return `<div class="card" id="macros" style="border:2px solid var(--ac)"><h3>Macro targets for ${esc(cp().name)}</h3><small style="margin-bottom:8px">Presets show protein/carbs/fat as a share of calories. ${sel<0?"You’re using a custom split.":""}</small><div class="g2">${pre}</div><div class="seg">${md("pct","Percent")}${md("g","Grams")}${md("kg","Per kg")}</div><div class="g2">${fields}</div><div class="prev">Goals: protein ${r(G.P)} g, carbs ${r(G.C)} g, fat ${r(G.F)} g (${r(kc)} kcal)</div>${sum&&sum!==100?`<small style="color:var(--dn)">Percentages add up to ${sum}, not 100.</small>`:""}${t.m==="kg"&&!lastW()?'<small>Add your weight in the goal card above or in Charts. Until then, protein uses the percent split.</small>':""}${t.m==="g"&&Math.abs(kc-(S.target||2000))>25?`<small>That is ${r(Math.abs(kc-(S.target||2000)))} kcal ${kc>(S.target||2000)?"above":"below"} your calorie target.</small>`:""}<h3 style="margin-top:14px">Other nutrient targets</h3><div class="g2">${[["fi","Fibre (g)"],["sa","Saturates max (% of calories)"],["su","Free sugars max (% of calories)"],["sl","Salt max (g)"]].map(a=>`<div><small>${a[1]}</small><input type="number" inputmode="decimal" value="${(cp().nt||NDEF)[a[0]]}" onchange="setNT('${a[0]}',this.value)"></div>`).join("")}</div><small>Defaults follow UK guidance: fibre 30 g, saturates 11%, free sugars 5%, salt 6 g.</small></div>`}
-function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><small>Signed in as ${esc(ME.email)}. Use the buttons at the top of any page to switch profile.</small><button class="alt" style="margin-top:10px" onclick="signOut()">Sign out</button></div>${vGoal()}<div class="card"><h3>Daily calorie target for ${esc(cp().name)}</h3><input type="number" inputmode="numeric" value="${S.target}" onchange="S.target=+this.value||2000;save();render()"></div>${vMT()}
+function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><small>Signed in as ${esc(ME.email)}. Use the profile menu at the top of any page to switch profile.</small><button class="alt" style="margin-top:10px" onclick="signOut()">Sign out</button></div>${vGoal()}<div class="card"><h3>Daily calorie target for ${esc(cp().name)}</h3><input type="number" inputmode="numeric" value="${S.target}" onchange="S.target=+this.value||2000;save();render()"></div>${vMT()}
 <div class="card"><h3>Past entries</h3><small style="margin-bottom:8px">After you set free sugars, fibre, saturates or salt on a food, one tap fills them in on entries you logged earlier. It uses the food’s current values and the amount you logged.</small><button onclick="recalcPast()">Recalculate past entries</button>${fixMsg?`<small style="margin-top:8px">${esc(fixMsg)}</small>`:""}</div>
 <div class="card"><h3>Backup</h3><small style="margin-bottom:8px">Your data is saved to your account. Export a copy now and then as a backup. To bring in an older backup, paste it here and choose which profile in the file is yours.</small><textarea id="bk" rows="5" placeholder="Export fills this box. Paste a backup here to import."></textarea>
 <small style="margin-top:10px">Import from file profile</small><select id="ip"><option value="0">First profile</option><option value="1">Second profile</option></select><div class="seg" style="margin-top:10px"><button onclick="exp()">Export</button><button class="alt" onclick="importLegacy()">Import</button></div><small id="bm"></small></div>`}
 function exp(){const b=$("#bk");b.value=JSON.stringify(S);b.select();try{navigator.clipboard.writeText(b.value);$("#bm").textContent="Exported and copied."}catch(e){$("#bm").textContent="Exported. Copy the text above."}}
-function render(){$("#pb").innerHTML=S.profiles.map(p=>`<button class="${p.id===S.cur?"":"alt"}" onclick="setProf('${p.id}')">${esc(p.name)}</button>`).join("")+`<small id="sync" style="margin:0;align-self:center;min-width:64px;text-align:right">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
+function render(){$("#pb").innerHTML=`<select aria-label="Profile" onchange="setProf(this.value)">${S.profiles.map(p=>`<option value="${p.id}"${p.id===S.cur?" selected":""}>${esc(p.name)}</option>`).join("")}</select><small id="sync">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
 boot();
 </script></body></html>
