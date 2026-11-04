@@ -58,17 +58,17 @@ body:not(.ready) nav{display:none}
 .streak.off{background:var(--bd);color:var(--mu);box-shadow:none}.streak.off svg{filter:grayscale(1);opacity:.55}
 @keyframes flick{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.1) rotate(3deg)}}
 @media (prefers-reduced-motion:reduce){.streak.hot svg{animation:none}}
-.meal{padding:0;overflow:hidden}
-.meal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 8px;cursor:pointer}
-.meal .mh b{font-size:17px}.meal .mk{font-size:14px;color:var(--mu)}.meal .mk b{font-size:22px;color:var(--tx)}
-.meal .ms{display:flex;gap:6px 14px;flex-wrap:wrap;padding:0 14px 14px;font-size:13px;color:var(--mu)}
-.meal .ms span{display:flex;align-items:center;gap:5px}.meal .ms i{width:8px;height:8px;border-radius:50%;display:inline-block}
-.meal.open{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
-.meal .mb{border-top:1px solid var(--bd);padding:4px 14px 14px}
-.meal .addbox{margin-top:10px;padding-top:12px;border-top:1px dashed var(--bd)}
-
-nav button{font-size:13px}button[disabled]{opacity:.5}
-.bub{max-width:88%;padding:10px 12px;border-radius:14px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}.bub.u{background:var(--ac);color:var(--on);margin-left:auto}.bub.a{background:var(--card);border:1px solid var(--bd)}
+.meal{padding:0;overflow:hidden;cursor:pointer}
+.meal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 8px}
+.meal .mh b{font-size:17px}.mk{font-size:14px;color:var(--mu)}.mk b{font-size:22px;color:var(--tx)}
+.meal .ms{padding:0 14px 14px}
+.ms{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:13px;color:var(--mu)}
+.ms span{display:flex;align-items:center;gap:5px}.ms i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.mi{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:var(--bg);border:1px solid var(--bd);color:var(--ac);flex:none}
+.mtop{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.mtop button{padding:8px 14px}
+.mtl{display:flex;align-items:center;gap:12px}.mtl b{font-size:20px}
+.card>.addbox{margin:0;padding:0;border:0}
 </style></head><body><main><div id="pb"></div><div id="app"></div></main>
 <nav><button data-t="today" class="on">Log</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -266,7 +266,6 @@ function streakInfo(){const ds=new Set(cp().log.map(l=>l.date)),iso=d=>d.toISOSt
 const wk=[];for(let i=6;i>=0;i--){const x=new Date(today()+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"})})}return{n,wk}}
 function goDate(d){date=d;render()}
 function setLeft(v){S.left=v;try{localStorage.setItem("plate_left",v?"1":"0")}catch(e){}render()}
-function openMeal(m){add.open=add.open===m?null:m;if(add.open){add.meal=m;add.id="";add.q=""}render()}
 function entRows(E){return E.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")}
 function addBox(m){const sel=items().find(i=>i.id===add.id);
 return `<div class="addbox"><small style="margin:0 0 8px">Add to ${m.toLowerCase()}</small>`+(sel?`<div class="row" style="border:0;padding:0 0 10px"><div><b>${esc(sel.name)}</b><small>1 serving is ${r(sel.sg)} g</small></div><button class="alt" onclick="pickItem('')">Change</button></div>
@@ -274,11 +273,27 @@ return `<div class="addbox"><small style="margin:0 0 8px">Add to ${m.toLowerCase
 ${add.alt?`<small>${esc(cp().name)}</small>`:""}<input id="amt" type="number" inputmode="decimal" value="${add.amt}" oninput="setAmt(this.value)"><div class="prev" id="prev"></div>
 <label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" style="width:auto" ${add.alt?"checked":""} onchange="setAlt(this.checked)">Also log for ${esc(other().name)}</label>${add.alt?`<small>${esc(other().name)}</small><input id="amt2" type="number" inputmode="decimal" value="${add.amt2}" oninput="setAmt2(this.value)"><div class="prev" id="prev2"></div>`:""}<button onclick="logIt()">${add.alt?"Add to both logs":"Add to log"}</button>`
 :`<input id="q" placeholder="Search foods and recipes" autocomplete="off" value="${esc(add.q)}" oninput="qSearch(this.value)"><div id="res"></div>`)+`</div>`}
-function mealCard(m,E,canAdd){const T=mealStats(E),open=add.open===m;
-return `<div class="card meal${open?" open":""}"><div class="mh" onclick="openMeal('${m}')"><div style="display:flex;align-items:center;gap:10px"><span style="color:var(--mu)">${open?"▾":"▸"}</span><div><b>${m}</b><small style="margin:0">${E.length?E.length+(E.length===1?" item":" items"):"Nothing logged"}</small></div></div><div class="mk"><b>${r(T.k)}</b> kcal</div></div>
-<div class="ms"><span><i style="background:var(--p)"></i>P ${r(T.p)} g</span><span><i style="background:var(--c)"></i>C ${r(T.c)} g</span><span><i style="background:var(--f)"></i>F ${r(T.f)} g</span><span><i style="background:var(--ac)"></i>Fibre ${r(T.fi)} g</span></div>
-${open?`<div class="mb">${entRows(E)}${canAdd?addBox(m):""}</div>`:""}</div>`}
+const ic=p=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON={Breakfast:ic('<path d="M5 11h11v3.5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 14.5V11z"/><path d="M16 12h1.5a2 2 0 0 1 0 4H15.5"/><path d="M8 4v3M11.5 4v3"/>'),
+Lunch:ic('<path d="M3 11h18c0 4.4-3.6 8-9 8s-9-3.6-9-8z"/><path d="M8 7.5c0-1 .8-1.2.8-2.2M12 7.5c0-1 .8-1.2.8-2.2M16 7.5c0-1 .8-1.2.8-2.2"/>'),
+Dinner:ic('<circle cx="12" cy="12" r="4.5"/><path d="M3.5 4.5v4.2a1.6 1.6 0 0 0 3.2 0V4.5M5.1 10v9.5"/><path d="M20.5 19.5v-15c-2.2 1-3.3 3.1-3.3 6V13h3.3"/>'),
+Snacks:ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>'),
+Other:ic('<path d="M8 6.5h11M8 12h11M8 17.5h11"/><circle cx="4.5" cy="6.5" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="17.5" r=".8"/>')};
+let mealPushed=false;
+function openMeal(m){add.open=m;if(MEALS.includes(m))add.meal=m;add.id="";add.q="";try{history.pushState({m},"");mealPushed=true}catch(e){}render();scrollTo(0,0)}
+function closeMeal(){if(mealPushed){mealPushed=false;history.back();return}add.open=null;render();scrollTo(0,0)}
+window.addEventListener("popstate",()=>{mealPushed=false;if(add.open){add.open=null;render();scrollTo(0,0)}});
+const msHTML=T=>`<div class="ms"><span><i style="background:var(--p)"></i>P ${r(T.p)} g</span><span><i style="background:var(--c)"></i>C ${r(T.c)} g</span><span><i style="background:var(--f)"></i>F ${r(T.f)} g</span><span><i style="background:var(--ac)"></i>Fibre ${r(T.fi)} g</span></div>`;
+function mealCard(m,E){const T=mealStats(E);
+return `<div class="card meal" onclick="openMeal('${m}')"><div class="mh"><div style="display:flex;align-items:center;gap:12px"><span class="mi">${ICON[m]}</span><div><b>${m}</b><small style="margin:0">${E.length?E.length+(E.length===1?" item":" items"):"Nothing logged"}</small></div></div><div class="mk"><b>${r(T.k)}</b> kcal</div></div>${msHTML(T)}</div>`}
+function mealScreen(m,L){const E=m==="Other"?L.filter(l=>!MEALS.includes(l.meal)):L.filter(l=>l.meal===m),T=mealStats(E),day=mealStats(L),K=S.target||2000;
+const dl=new Date(date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
+return `<div class="mtop"><button class="alt" onclick="closeMeal()">‹ Log</button><div class="mtl"><span class="mi">${ICON[m]}</span><div><b>${m}</b><small style="margin:0">${dl}</small></div></div></div>
+<div class="card mscr"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div class="big">${r(T.k)} <span>kcal</span></div><small style="margin:0;text-align:right">Day so far ${r(day.k)} of ${K}</small></div><div style="margin-top:10px">${msHTML(T)}</div></div>
+${m==="Other"?"":`<div class="card">${addBox(m)}</div>`}
+<div class="card"><h3>Entries</h3>${E.length?entRows(E):'<div class="empty">Nothing logged yet.</div>'}</div>`}
 function vToday(){const L=S.log.filter(l=>l.date===date),T={k:0,p:0,c:0,f:0};L.forEach(l=>M.forEach(m=>T[m]+=l[m]));
+if(add.open&&(MEALS.includes(add.open)||add.open==="Other"))return mealScreen(add.open,L);
 const NT={},NM={},NI={},G=goals(),K=S.target||2000;N.forEach(n=>{NT[n]=0;NM[n]=0;NI[n]=0;L.forEach(l=>{if(l[n]==null)NM[n]++;else{NT[n]+=l[n];if(l.inc&&l.inc[n])NI[n]++}})});
 const nt=cp().nt||NDEF;const NG=[["fi","Fibre",nt.fi,0],["sa","Saturates",K*nt.sa/100/9,1],["fr","Free sugars",K*nt.su/100/4,1],["sl","Salt",nt.sl,1]];
 const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3])+(L.length&&(NM[a[0]]||NI[a[0]])?`<small>${NM[a[0]]?`${NM[a[0]]} of ${L.length} entries have no ${a[1].toLowerCase()} data`:""}${NM[a[0]]&&NI[a[0]]?", ":""}${NI[a[0]]?`${NI[a[0]]} recipe${NI[a[0]]===1?"":"s"} only partly counted`:""}</small>`:"")).join("");
@@ -290,15 +305,15 @@ const calCard=`<div class="card"><div style="display:flex;justify-content:space-
 <div class="tg"><button class="${S.left?"on":""}" onclick="setLeft(true)">Left</button><button class="${S.left?"":"on"}" onclick="setLeft(false)">Eaten</button></div></div><div class="bar"><i style="width:${pct}%"></i></div>
 ${pb("Protein",T.p,G.P,"--p")}${pb("Carbs",T.c,G.C,"--c")}${pb("Fat",T.f,G.F,"--f")}</div>`;
 const oth=L.filter(l=>!MEALS.includes(l.meal));
-return dateCard+calCard+`<div class="card"><h3>Fibre and other nutrients</h3>${nrow}</div>`+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m),true)).join("")+(oth.length?mealCard("Other",oth,false):"")}
+return dateCard+calCard+`<div class="card"><h3>Fibre and other nutrients</h3>${nrow}</div>`+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m))).join("")+(oth.length?mealCard("Other",oth):"")}
 function prev(){const it=items().find(i=>i.id===add.id);[["#prev",add.amt],["#prev2",add.amt2]].forEach(([s,a])=>{const e=$(s);if(!e)return;if(!it){e.textContent="";return}const g=gr(it,a),m=mac(it,g);e.textContent=`${r(g)} g: ${r(m.k)} kcal, P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}`})}
 function setProf(id){S.cur=id;add.id="";add.q="";try{localStorage.setItem("plate_cur",id)}catch(e){}render()}
 function renameProf(id,v){const p=S.profiles.find(x=>x.id===id);if(p&&v.trim()){p.name=v.trim();save();render()}}
 function qSearch(v){add.q=v;res()}
 function res(){const e=$("#res");if(!e)return;const q=add.q.trim().toLowerCase(),its=items();
 if(q){const h=its.filter(i=>i.name.toLowerCase().includes(q)).slice(0,8);e.innerHTML=h.length?h.map(i=>`<div class="row" onclick="pickItem('${i.id}')" style="cursor:pointer"><div><b>${esc(i.name)}</b><small>${i.t==="Recipes"?"Recipe, ":""}${r(i.per.k*i.sg/100)} kcal per serving (${r(i.sg)} g)</small></div></div>`).join(""):'<div class="empty">No match. Add it in the Foods tab first.</div>';return}
-const seen=[],rc=[];[...S.log].reverse().forEach(l=>{if(rc.length<8&&!seen.includes(l.name)){seen.push(l.name);const it=its.find(i=>i.name===l.name);if(it)rc.push(it)}});
-e.innerHTML=rc.length?`<small style="margin:8px 0 6px">Recent</small><div style="display:flex;flex-wrap:wrap;gap:6px">${rc.map(i=>`<button class="alt" onclick="pickItem('${i.id}')">${esc(i.name)}</button>`).join("")}</div>`:""}
+const pool=S.log.filter(l=>l.meal===add.meal),seen=[],rc=[];[...(pool.length?pool:S.log)].reverse().forEach(l=>{if(rc.length<6&&!seen.includes(l.name)){seen.push(l.name);const it=its.find(i=>i.name===l.name);if(it)rc.push(it)}});
+e.innerHTML=rc.length?`<small style="margin:8px 0 6px">${pool.length?"Recent in "+String(add.meal).toLowerCase():"Recent"}</small><div style="display:flex;flex-wrap:wrap;gap:6px">${rc.map(i=>`<button class="alt" onclick="pickItem('${i.id}')">${esc(i.name)}</button>`).join("")}</div>`:""}
 function pickItem(v){add.id=v;add.q="";setMode(add.mode);if(v)setTimeout(()=>{const a=$("#amt");if(a){a.focus();a.select()}},0)}
 function setAmt(v){add.amt=v;prev()}
 function setMode(m){const it=items().find(i=>i.id===add.id);add.mode=m;add.amt=add.amt2=m==="s"?"1":String(it?r(it.sg):100);render()}
@@ -427,6 +442,6 @@ function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><sma
 <small style="margin-top:10px">Import from file profile</small><select id="ip"><option value="0">First profile</option><option value="1">Second profile</option></select><div class="seg" style="margin-top:10px"><button onclick="exp()">Export</button><button class="alt" onclick="importLegacy()">Import</button></div><small id="bm"></small></div>`}
 function exp(){const b=$("#bk");b.value=JSON.stringify(S);b.select();try{navigator.clipboard.writeText(b.value);$("#bm").textContent="Exported and copied."}catch(e){$("#bm").textContent="Exported. Copy the text above."}}
 function render(){$("#pb").innerHTML=`<select aria-label="Profile" onchange="setProf(this.value)">${S.profiles.map(p=>`<option value="${p.id}"${p.id===S.cur?" selected":""}>${esc(p.name)}</option>`).join("")}</select><small id="sync">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;add.open=null;mealPushed=false;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
 boot();
 </script></body></html>
