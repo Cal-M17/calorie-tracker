@@ -65,6 +65,7 @@ const SCHEMA = {
           code: { type: "STRING" },
           unit: { type: "STRING", enum: ["servings", "grams"] },
           amount: { type: "NUMBER" },
+          measure: { type: "STRING" },
         },
         required: ["profile", "meal", "date", "source", "unit", "amount"],
       },
@@ -75,12 +76,13 @@ const SCHEMA = {
 
 function systemPrompt(ctx, cands, dbRes, tier) {
   const { items, ...rest } = ctx;
-  const slim = (i) => ({ id: i.id, name: i.name, type: i.type, per100g: i.per100, serving_g: i.serving_g });
+  const slim = (i) => ({ id: i.id, name: i.name, type: i.type, basis: i.basis, per100g: i.per100, per_serving: i.per_serving, units: i.units, serving: i.serving, serving_g: i.serving_g });
   return [
     "You are the assistant inside a personal nutrition tracker, chatting on a phone. Reply in plain text, short and practical, with at most a short list.",
     "Answer with JSON only, using these fields: reply (text for the user), log (foods to line up for logging, optional), search (product-database search terms, optional), escalate (boolean, optional).",
     "The user tracks food for the profiles in the context and may log for either or both. Use the active profile unless they name one or say both. Default the date to today. Pick the meal from what they say or the time of day.",
     "To log food, put it in log using ids from MY FOODS AND RECIPES, or codes from DATABASE RESULTS. The app shows a confirmation card, so say you have lined it up to confirm, never that it is already logged. If an amount, meal or profile is unclear, ask one short question in reply and leave log empty.",
+    "Each food has a basis (per 100 g, per 100 ml or per serving) and a units list. When the user gives an amount in one of that food's own units (for example 2 wings, 1 tbsp, 300 ml), set measure to exactly that unit name and amount to the number in that unit. Otherwise use unit servings or grams with no measure. Never convert between units yourself, and if the amount is in a unit the food does not have, ask in reply.",
     "If something they ate is in neither list, do not guess. Add a short product search term to search (at most 3) and tell them you are checking the database. Never invent nutrition numbers or ids.",
     "When suggesting meals, say roughly how they fit the remaining calories and macros for today, and prefer foods and recipes they already have.",
     "The sugar limit applies to free sugars, not the natural sugars in whole fruit, vegetables or plain milk. Use free_sugars figures when present and say when they are missing.",
@@ -143,7 +145,7 @@ function buildActions(log, ctx, found) {
     const unit = e.unit === "grams" ? "g" : "servings";
     const amount = +e.amount;
     if (!(amount > 0)) { errs.push("an amount was missing"); continue; }
-    const a = { profile: String(e.profile || ""), meal: MEALS.includes(e.meal) ? e.meal : "Snacks", date: /^\d{4}-\d{2}-\d{2}$/.test(e.date || "") ? e.date : ctx.today, unit, amount };
+    const a = { measure: typeof e.measure === "string" && e.measure.trim() ? e.measure.trim().slice(0, 30) : undefined, profile: String(e.profile || ""), meal: MEALS.includes(e.meal) ? e.meal : "Snacks", date: /^\d{4}-\d{2}-\d{2}$/.test(e.date || "") ? e.date : ctx.today, unit, amount };
     if (e.source === "database") {
       const f = found.get(String(e.code || ""));
       if (!f) { errs.push("a product wasn’t found in the database"); continue; }
