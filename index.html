@@ -10,7 +10,10 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>Plate tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://olrghmfqjenejdjcuoar.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"></noscript>
 <style>
 :root{--bg:#f2f4f1;--card:#fff;--tx:#17211d;--mu:#64716b;--ac:#1f6f5c;--on:#fff;--bd:#dde3df;--p:#c2410c;--c:#1d4ed8;--f:#a16207;--dn:#b42318;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
@@ -39,6 +42,11 @@ nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);b
 nav button{flex:1;background:transparent;color:var(--mu);border-radius:0;padding:14px 4px}nav button.on{color:var(--ac)}
 .empty{color:var(--mu);padding:8px 0}
 body:not(.ready) nav{display:none}
+.loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:90px 0}
+.loading i{width:28px;height:28px;border-radius:50%;border:3px solid var(--bd);border-top-color:var(--ac);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sw{position:relative}.sw input{padding-right:44px}
+.clr{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--mu);color:var(--card);display:none;align-items:center;justify-content:center;padding:0;font-size:17px;line-height:1;font-weight:700}
 #pb{display:flex;justify-content:center;align-items:center;position:relative;margin-bottom:12px}
 #pb select{width:auto;min-width:180px;text-align:center;text-align-last:center;font-weight:700;border-radius:999px;padding:9px 16px}
 #pb small{position:absolute;right:0;margin:0;font-size:12px}
@@ -88,21 +96,41 @@ const num=v=>v==null?null:+v,ne=o=>o&&Object.keys(o).length?o:undefined;
 async function fetchAll(q){let out=[],from=0;for(;;){const d=await ok(q().range(from,from+999));out=out.concat(d);if(d.length<1000)break;from+=1000}return out}
 const rowToEntry=x=>({id:x.id,date:x.entry_date,meal:x.meal,name:x.name,label:x.label||"",k:+x.kcal,p:+x.protein,c:+x.carbs,f:+x.fat,fi:num(x.fibre),su:num(x.sugars),fr:num(x.free_sugars),sa:num(x.saturates),sl:num(x.salt),inc:x.incomplete||null});
 const erow=(l,u)=>({id:l.id,household_id:HH,user_id:u,entry_date:l.date,meal:MEALS.includes(l.meal)?l.meal:"Snacks",name:l.name,label:l.label||null,kcal:l.k,protein:l.p,carbs:l.c,fat:l.f,fibre:l.fi??null,sugars:l.su??null,free_sugars:l.fr??null,saturates:l.sa??null,salt:l.sl??null,incomplete:l.inc||null});
-async function loadAll(user){
+async function fetchData(user){
 const mem=await ok(sb.from("household_members").select("household_id,user_id,display_name"));
 const mr=mem.find(m=>m.user_id===user.id);if(!mr)throw new Error("Your account isn’t linked to a household yet.");
-HH=mr.household_id;const ids=mem.map(m=>m.user_id);
-try{await ok(sb.from("user_settings").upsert(ids.map(u=>({user_id:u})),{onConflict:"user_id",ignoreDuplicates:true}))}catch(e){console.error(e)}
-const sets=await ok(sb.from("user_settings").select("*").in("user_id",ids));
-const foods=await fetchAll(()=>sb.from("foods").select("*").order("id"));
-const recs=await fetchAll(()=>sb.from("recipes").select("*, recipe_ingredients(food_id,grams,sort)").order("id"));
-const ents=await fetchAll(()=>sb.from("entries").select("*").eq("household_id",HH).order("id"));
-const wts=await fetchAll(()=>sb.from("weights").select("*").in("user_id",ids).order("weigh_date"));
+const ids=mem.map(m=>m.user_id),hh=mr.household_id;
+const[sets,foods,recs,ents,wts]=await Promise.all([
+ok(sb.from("user_settings").select("*").in("user_id",ids)),
+fetchAll(()=>sb.from("foods").select("*").order("id")),
+fetchAll(()=>sb.from("recipes").select("*, recipe_ingredients(food_id,grams,sort)").order("id")),
+fetchAll(()=>sb.from("entries").select("*").eq("household_id",hh).order("id")),
+fetchAll(()=>sb.from("weights").select("*").in("user_id",ids).order("weigh_date"))]);
+if(ids.some(id=>!sets.some(s=>s.user_id===id)))sb.from("user_settings").upsert(ids.map(u=>({user_id:u})),{onConflict:"user_id",ignoreDuplicates:true}).then(()=>{},()=>{});
+return{user,mem,hh,sets,foods,recs,ents,wts}}
+function applyData(d){const{user,mem,hh,sets,foods,recs,ents,wts}=d;HH=hh;
 S.foods=foods.map(x=>({id:x.id,name:x.name,k:+x.kcal,p:+x.protein,c:+x.carbs,f:+x.fat,fi:num(x.fibre),su:num(x.sugars),fr:num(x.free_sugars),sa:num(x.saturates),sl:num(x.salt),sg:+x.serving_g||0}));
 S.recipes=recs.map(x=>({id:x.id,name:x.name,cooked:+x.cooked_weight_g||0,servings:+x.servings||1,ings:(x.recipe_ingredients||[]).sort((a,b)=>a.sort-b.sort).map(i=>({fid:i.food_id,g:+i.grams}))}));
 S.profiles=mem.slice().sort((a,b)=>(b.user_id===user.id)-(a.user_id===user.id)).map(m=>{const s=sets.find(x=>x.user_id===m.user_id)||{};return{id:m.user_id,name:m.display_name,target:s.calorie_target||2000,mt:ne(s.macro_targets),nt:ne(s.nutrient_targets),gl:ne(s.goal),log:ents.filter(e=>e.user_id===m.user_id).map(rowToEntry),weights:wts.filter(w=>w.user_id===m.user_id).map(w=>({date:w.weigh_date,kg:+w.kg}))}});
 let sel=user.id;try{const c=localStorage.getItem("plate_cur");if(S.profiles.some(p=>p.id===c))sel=c}catch(e){}
 S.cur=sel;mark();READY=true;outboxRestore()}
+async function loadAll(user){const d=await fetchData(user);applyData(d);cacheWrite()}
+let pushCount=0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// A copy of your data is kept on this device so the app opens instantly, then refreshes from your account.
+function readCache(){try{const c=JSON.parse(localStorage.getItem("plate_cache")||"null");return c&&c.u&&Array.isArray(c.profiles)?c:null}catch(e){return null}}
+function cacheWrite(){if(!READY||!ME)return;try{const cut=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+localStorage.setItem("plate_cache",JSON.stringify({u:ME.id,e:ME.email||"",h:HH,foods:S.foods,recipes:S.recipes,profiles:S.profiles.map(p=>({...p,log:p.log.filter(l=>l.date>=cut)}))}))}catch(e){}}
+function cacheApply(c){ME={id:c.u,email:c.e||""};HH=c.h;S.foods=c.foods;S.recipes=c.recipes;S.profiles=c.profiles;let sel=c.u;try{const x=localStorage.getItem("plate_cur");if(S.profiles.some(p=>p.id===x))sel=x}catch(e){}S.cur=sel;mark();READY=true;outboxRestore()}
+async function boot(){const c=readCache();let shown=false;
+if(c){try{cacheApply(c);document.body.classList.add("ready");$("#pb").style.display="";render();status("Updating…");shown=true}catch(e){console.error(e);READY=false}}
+else $("#app").innerHTML='<div class="loading"><i></i><small>Loading your data…</small></div>';
+let session=null;try{const r=await sb.auth.getSession();session=r.data.session;if(!session&&r.error&&shown){status("Offline, showing saved data",true);return}}catch(e){}
+if(!session){showLogin();return}
+ME=session.user;
+try{const pc=pushCount;let d=await fetchData(ME);for(let i=0;i<30&&(dirty||busy);i++)await sleep(300);if(pushCount!==pc)d=await fetchData(ME);
+applyData(d);cacheWrite();document.body.classList.add("ready");$("#pb").style.display="";render();status(syncErr?"Not saved":"")}
+catch(e){console.error(e);if(shown)status("Offline, showing saved data",true);else $("#app").innerHTML=`<div class="card"><h3>Couldn’t load your data</h3><small>${esc(e.message||String(e))}</small><div class="seg" style="margin-top:10px"><button onclick="location.reload()">Try again</button><button class="alt" onclick="signOut()">Sign out</button></div></div>`}}
 const EK=l=>JSON.stringify([l.date,l.meal,l.name,l.label,l.k,l.p,l.c,l.f,l.fi,l.su,l.fr,l.sa,l.sl,l.inc||null]);
 const FK=f=>JSON.stringify([f.name,f.k,f.p,f.c,f.f,f.fi??null,f.su??null,f.fr??null,f.sa??null,f.sl??null,f.sg||0]);
 const RK=r=>JSON.stringify([r.name,r.cooked||0,r.servings||1,r.ings.map(i=>[i.fid,+i.g])]);
@@ -136,7 +164,7 @@ const put=(arr,it,key)=>{const i=arr.findIndex(y=>key(y)===key(it));if(i>=0)arr[
 if(n){dirty=true;setTimeout(push,300)}}
 function save(){if(!READY)return;dirty=true;status("Saving…");outboxWrite();clearTimeout(tm);tm=setTimeout(push,400)}
 async function push(){if(busy){again=true;return}busy=true;
-try{await pushAll();syncErr="";dirty=false;outboxWrite();status("Saved")}
+try{await pushAll();syncErr="";dirty=false;outboxWrite();pushCount++;cacheWrite();status("Saved")}
 catch(e){console.error(e);const m=errText(e);if(/free_sugars/i.test(m)&&!noFS){noFS=true;fsWarn=true;again=true}else{syncErr=m;status("Not saved",true);clearTimeout(tm);tm=setTimeout(push,20000)}}
 outboxWrite();busy=false;if(again){again=false;push()}}
 const erowX=(l,u)=>{const r=erow(l,u);if(noFS)delete r.free_sugars;return r};
@@ -220,10 +248,7 @@ const AI_DEEP_LIMIT=20;
 function aiUse(){try{const u=JSON.parse(localStorage.getItem("plate_ai")||"{}");return u.d===today()?u:{d:today(),lite:0,deep:0}}catch(e){return{d:today(),lite:0,deep:0}}}
 function aiAdd(us){const u=aiUse();u.lite+=us.lite||0;u.deep+=us.deep||0;try{localStorage.setItem("plate_ai",JSON.stringify(u))}catch(e){}}
 function aiNote(){const u=aiUse(),left=Math.max(0,AI_DEEP_LIMIT-u.deep);return `Today: ${u.lite} quick and ${u.deep} deep calls. About ${left} deep answers left.`+(left<=3?" Running low, so quick answers only.":"")}
-async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){showLogin();return}
-try{ME=session.user;await loadAll(ME);document.body.classList.add("ready");$("#pb").style.display="";render()}
-catch(e){console.error(e);$("#app").innerHTML=`<div class="card"><h3>Couldn’t load your data</h3><small>${esc(e.message||String(e))}</small><div class="seg" style="margin-top:10px"><button onclick="location.reload()">Try again</button><button class="alt" onclick="signOut()">Sign out</button></div></div>`}}
-function showLogin(){READY=false;document.body.classList.remove("ready");$("#pb").style.display="none";
+function showLogin(){READY=false;try{localStorage.removeItem("plate_cache")}catch(e){}document.body.classList.remove("ready");$("#pb").style.display="none";
 $("#app").innerHTML=`<h2>Plate tracker</h2><form class="card" onsubmit="doLogin();return false"><input id="le" type="email" autocomplete="username" placeholder="Email" style="margin-bottom:8px"><input id="lp" type="password" autocomplete="current-password" placeholder="Password" style="margin-bottom:10px"><button type="submit" style="width:100%">Sign in</button><small id="lm" style="color:var(--dn);margin-top:8px"></small></form>`}
 async function doLogin(){const{error}=await sb.auth.signInWithPassword({email:$("#le").value.trim(),password:$("#lp").value});if(error){$("#lm").textContent=error.message;return}boot()}
 async function signOut(){READY=false;await sb.auth.signOut();showLogin()}
@@ -301,7 +326,7 @@ return `<div class="addbox"><small style="margin:0 0 8px">Add to ${m.toLowerCase
 <div class="seg"><button class="${add.mode==="s"?"":"alt"}" onclick="setMode('s')">Servings</button><button class="${add.mode==="g"?"":"alt"}" onclick="setMode('g')">Grams</button></div>
 ${add.alt?`<small>${esc(cp().name)}</small>`:""}<input id="amt" type="number" inputmode="decimal" value="${add.amt}" oninput="setAmt(this.value)"><div class="prev" id="prev"></div>
 <label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" style="width:auto" ${add.alt?"checked":""} onchange="setAlt(this.checked)">Also log for ${esc(other().name)}</label>${add.alt?`<small>${esc(other().name)}</small><input id="amt2" type="number" inputmode="decimal" value="${add.amt2}" oninput="setAmt2(this.value)"><div class="prev" id="prev2"></div>`:""}<button onclick="logIt()">${add.alt?"Add to both logs":"Add to log"}</button>`
-:`<input id="q" placeholder="Search foods and recipes" autocomplete="off" value="${esc(add.q)}" oninput="qSearch(this.value)"><div id="res"></div>`)+`</div>`}
+:`${sbox("q","Search foods and recipes",add.q,"qSearch")}<div id="res"></div>`)+`</div>`}
 const ic=p=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const ICON={Breakfast:ic('<path d="M5 11h11v3.5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 14.5V11z"/><path d="M16 12h1.5a2 2 0 0 1 0 4H15.5"/><path d="M8 4v3M11.5 4v3"/>'),
 Lunch:ic('<path d="M3 11h18c0 4.4-3.6 8-9 8s-9-3.6-9-8z"/><path d="M8 7.5c0-1 .8-1.2.8-2.2M12 7.5c0-1 .8-1.2.8-2.2M16 7.5c0-1 .8-1.2.8-2.2"/>'),
@@ -364,7 +389,7 @@ const gs=[...MEALS,"Other"].map(m=>[m,L.filter(l=>(MEALS.includes(l.meal)?l.meal
 return gs.map(([m,e])=>`<p style="margin:12px 0 0"><b>${m}</b> <small style="display:inline">${r(e.reduce((a,l)=>a+l.k,0))} kcal, ${r(e.reduce((a,l)=>a+l.p,0))} g protein</small></p>`+e.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")).join("")}
 function delLog(id){S.log=S.log.filter(l=>l.id!==id);save();render()}
 function vFoods(){const n=(i,p,k)=>`<input id="${i}" type="number" inputmode="decimal" placeholder="${p}" value="${fd[k]??""}">`;
-return `<h2>Foods</h2><div class="card"><h3>UK starter ingredients</h3><input placeholder="Search a food, or type a barcode" value="${esc(dq)}" oninput="dsearch(this.value)"><small style="margin:6px 0">Approximate values per 100 g. Check them against your packet label.</small><div id="dr"></div><div class="seg" style="margin-top:8px"><button class="alt" onclick="onlineSearch()">Search UK products online</button></div><div id="or"></div></div><div class="card"><div class="g2"><input id="fn" class="w" placeholder="Name, e.g. Semi-skimmed milk" value="${esc(fd.name||"")}"><input id="fs" type="number" inputmode="decimal" class="w" placeholder="Serving size in g (optional)" value="${fd.sg||""}">
+return `<h2>Foods</h2><div class="card"><h3>UK starter ingredients</h3>${sbox("","Search a food, or type a barcode",dq,"dsearch","if(event.key==='Enter')onlineSearch()")}<small style="margin:6px 0">Approximate values per 100 g. Check them against your packet label.</small><div id="dr"></div><div class="seg" style="margin-top:8px"><button class="alt" onclick="onlineSearch()">Search UK products online</button></div><div id="or"></div></div><div class="card"><div class="g2"><input id="fn" class="w" placeholder="Name, e.g. Semi-skimmed milk" value="${esc(fd.name||"")}"><input id="fs" type="number" inputmode="decimal" class="w" placeholder="Serving size in g (optional)" value="${fd.sg||""}">
 ${n("fk","kcal per 100 g","k")}${n("fp","Protein per 100 g","p")}${n("fc","Carbs per 100 g","c")}${n("ff","Fat per 100 g","f")}${n("fb","Fibre per 100 g (optional)","fi")}${n("fg","Sugars per 100 g (optional)","su")}${n("fq","Free sugars per 100 g (optional)","fr")}${n("fa","Saturates per 100 g (optional)","sa")}${n("fz","Salt per 100 g (optional)","sl")}<div class="w"><small>Quick set for free sugars</small><select id="fy"><option value="">Leave as entered</option><option value="none">None: natural sugars (whole fruit, veg, plain milk)</option><option value="all">All of the sugars count (sweets, juice, sauces)</option></select></div></div><div class="seg"><button onclick="addFood()">${fd.id?"Update food":"Save food"}</button>${fd.id?'<button class="alt" onclick="cancelFood()">Cancel</button>':""}</div></div>
 <div class="card">${S.foods.length?S.foods.map(f=>`<div class="row"><div><b>${esc(f.name)}</b><small>Per 100 g: ${r(f.k)} kcal, P ${r1(f.p)} C ${r1(f.c)} F ${r1(f.f)}${f.fi!=null?`, fibre ${r1(f.fi)}`:""}${f.fr!=null?`, free sugars ${r1(f.fr)}`:""}</small></div><div style="display:flex;gap:4px"><button class="alt" onclick="editFood('${f.id}')">Edit</button><button class="x" onclick="delFood('${f.id}')">Delete</button></div></div>`).join(""):'<div class="empty">No foods yet. Copy values from the packet label.</div>'}</div>`}
 function addFood(){const v=i=>+$("#"+i).value||0,nv=i=>{const x=$("#"+i).value;return x===""?null:+x},name=$("#fn").value.trim(),fy=()=>{const m=$("#fy").value,su=nv("fg");if(m==="none")return 0;if(m==="all")return su;return nv("fq")};if(!name)return;
@@ -372,7 +397,10 @@ const o={id:fd.id||uid(),name,k:v("fk"),p:v("fp"),c:v("fc"),f:v("ff"),fi:nv("fb"
 function editFood(id){fd={...S.foods.find(f=>f.id===id)};render();scrollTo(0,0)}
 function cancelFood(){fd={};render()}
 function delFood(id){S.foods=S.foods.filter(f=>f.id!==id);S.recipes.forEach(r=>r.ings=r.ings.filter(i=>i.fid!==id));save();render()}
-function dsearch(q){dq=q;const e=$("#dr");if(!e)return;const t=q.trim().toLowerCase();if(!t){e.innerHTML="";return}
+const sbox=(id,ph,val,fn,key)=>`<div class="sw"><input ${id?`id="${id}" `:""}placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(val)}" oninput="${fn}(this.value);clrShow(this)"${key?` onkeydown="${key}"`:""}><button type="button" class="clr" aria-label="Clear search" style="display:${val?"flex":"none"}" onclick="clrGo(this,'${fn}')">×</button></div>`;
+function clrShow(i){i.nextElementSibling.style.display=i.value?"flex":"none"}
+function clrGo(b,fn){const i=b.previousElementSibling;i.value="";b.style.display="none";window[fn]("");i.focus()}
+function dsearch(q){dq=q;const e=$("#dr");if(!e)return;const t=q.trim().toLowerCase();if(!t){e.innerHTML="";off=[];const o=$("#or");if(o)o.innerHTML="";return}
 const h=DB.map((d,i)=>[d,i]).filter(([d])=>d.n.toLowerCase().includes(t)).slice(0,8);
 e.innerHTML=h.length?h.map(([d,i])=>{const have=S.foods.some(f=>f.name===d.n);return `<div class="row"><div><b>${esc(d.n)}</b><small>${d.k} kcal, P ${d.p} C ${d.c} F ${d.f}</small></div>${have?"<small>Added</small>":`<button onclick="addDb(${i})">Add</button>`}</div>`}).join(""):'<div class="empty">No match in the starter list.</div>'}
 function addDb(i){const d=DB[i];S.foods.push({id:uid(),name:d.n,k:d.k,p:d.p,c:d.c,f:d.f,sg:0});save();render()}
