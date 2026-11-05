@@ -39,7 +39,12 @@ button.x{background:transparent;color:var(--dn);padding:6px 10px}
 .ing{display:grid;grid-template-columns:1fr 84px 36px;gap:8px;margin-bottom:8px}
 .prev{font-weight:700;margin:6px 0 10px;min-height:22px}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav button{flex:1;background:transparent;color:var(--mu);border-radius:0;padding:14px 4px}nav button.on{color:var(--ac)}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;color:var(--mu);border-radius:0;padding:8px 4px 6px;font-size:11px;font-weight:600;line-height:1.1;min-height:56px}nav button.on{color:var(--ac)}
+nav button.pl span{width:46px;height:46px;border-radius:50%;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 4px 12px rgba(0,0,0,.22);border:3px solid var(--card)}
+nav button.pl svg{width:24px;height:24px}
+.pm{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}.pm[hidden]{display:none}
+.pmc{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:210px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+.pmc button{display:flex;align-items:center;gap:10px;justify-content:flex-start;font-weight:600}
 .empty{color:var(--mu);padding:8px 0}
 body:not(.ready) nav{display:none}
 .loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:90px 0}
@@ -53,6 +58,13 @@ body:not(.ready) nav{display:none}
 .tg{display:inline-flex;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:2px;flex:none}
 .tg button{background:transparent;color:var(--mu);padding:5px 11px;font-size:12px;font-weight:600;border-radius:999px}
 .tg button.on{background:var(--ac);color:var(--on)}
+.ov{cursor:pointer}.ovh{display:flex;justify-content:space-between;align-items:center}.ovh h3{margin:0}.ovh span{color:var(--mu);font-size:22px;line-height:1}
+.ovg{display:grid;grid-template-columns:1fr 150px 1fr;align-items:center;text-align:center}
+.ovg b{display:block;font-size:22px;line-height:1.1}.ovg small{font-size:13px}
+.gauge{position:relative;width:150px}.gauge svg{display:block;width:100%;height:auto}
+.gc{position:absolute;left:0;right:0;top:58%;transform:translateY(-50%);text-align:center}.gc b{font-size:34px}
+.mbs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mb{text-align:center}.mb>span{color:var(--mu);font-size:14px}.mb .bar{margin:6px 0}.mb b{font-size:13px;font-weight:600;white-space:nowrap}
+.ovt{display:flex;justify-content:center;margin-top:14px}.ovt .tg button{padding:7px 16px;font-size:13px}
 .wkrow{display:flex;align-items:center;gap:10px;margin-top:14px}
 .wk{display:flex;flex:1;justify-content:space-between}
 .dot{background:none;color:var(--mu);border:0;padding:2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500}
@@ -61,7 +73,7 @@ body:not(.ready) nav{display:none}
 .dot.sel i{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--tx)}
 .dot.sel span{color:var(--tx);font-weight:700}
 .streak{display:flex;align-items:center;gap:6px;padding:6px 14px 6px 8px;border-radius:999px;background:linear-gradient(135deg,#f59e0b,#e8590c);color:#fff;box-shadow:0 4px 14px rgba(232,89,12,.35);flex:none}
-.streak b{display:block;font-size:20px;line-height:1}.streak small{display:block;color:inherit;opacity:.9;font-size:10px;margin:0}
+.streak b{display:block;font-size:20px;line-height:1}.streak small{display:block;color:inherit;opacity:.9;font-size:10px;margin:0}.streak>div{text-align:center}
 .streak.hot svg{animation:flick 1.6s ease-in-out infinite;transform-origin:50% 90%}
 .streak.off{background:var(--bd);color:var(--mu);box-shadow:none}.streak.off svg{filter:grayscale(1);opacity:.55}
 @keyframes flick{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.1) rotate(3deg)}}
@@ -78,7 +90,8 @@ body:not(.ready) nav{display:none}
 .mtl{display:flex;align-items:center;gap:12px}.mtl b{font-size:20px}
 .card>.addbox{margin:0;padding:0;border:0}
 </style></head><body><main><div id="pb"></div><div id="banner"></div><div id="app"></div></main>
-<nav><button data-t="today" class="on">Log</button><button data-t="foods">Foods</button><button data-t="rec">Recipes</button><button data-t="chart">Charts</button><button data-t="chat">Chat</button><button data-t="more">Settings</button></nav>
+<div id="pm" class="pm" hidden onclick="closePlus()"></div>
+<nav><button data-t="today" class="on"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Log</button><button data-t="chart"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Charts</button><button class="pl" aria-label="Add" aria-haspopup="true" onclick="plusMenu()"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><button data-t="chat"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat</button><button data-t="more"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s),r=n=>Math.round(n),r1=n=>Math.round(n*10)/10,uid=()=>crypto.randomUUID();
@@ -334,6 +347,16 @@ Dinner:ic('<circle cx="12" cy="12" r="4.5"/><path d="M3.5 4.5v4.2a1.6 1.6 0 0 0 
 Snacks:ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>'),
 Other:ic('<path d="M8 6.5h11M8 12h11M8 17.5h11"/><circle cx="4.5" cy="6.5" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="17.5" r=".8"/>')};
 let mealPushed=false;
+const PLUS=[["food","Add food",ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>')],["rec","Add recipe",ic('<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/>')],["wt","Add weight",ic('<rect x="3.5" y="4" width="17" height="16" rx="3.5"/><path d="M8 9.5a4 4 0 0 1 8 0z"/><path d="M12 9.5l1.8-2"/>')]];
+function plusMenu(){const m=$("#pm");if(!m.hidden){m.hidden=true;return}m.innerHTML=`<div class="pmc" onclick="event.stopPropagation()">${PLUS.map(a=>`<button class="alt" onclick="plusGo('${a[0]}')">${a[2]}<span>${a[1]}</span></button>`).join("")}</div>`;m.hidden=false}
+function closePlus(){$("#pm").hidden=true}
+function goTab(t){tab=t;add.open=null;mealPushed=false;render();scrollTo(0,0)}
+function plusGo(k){closePlus();goTab(k==="food"?"foods":k==="rec"?"rec":"chart");setTimeout(()=>{const e=k==="food"?$("#fn"):k==="wt"?$("#wk"):$("#app .card input");if(e){e.scrollIntoView({block:"center"});try{e.focus({preventScroll:true})}catch(x){}}},0)}
+function nutScreen(L,T,G,K,NT,NM,nrow,pct){const dl=new Date(date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"}),sh=(g,m)=>T.k?r(g*m/T.k*100):0;
+return `<div class="mtop"><button class="alt" onclick="closeMeal()">‹ Log</button><div class="mtl"><div><b>Nutrition overview</b><small style="margin:0">${dl}</small></div></div></div>
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div class="big">${r(T.k)} <span>of ${K} kcal</span></div><div class="tg"><button class="${S.left?"":"on"}" onclick="setLeft(false)">Consumed</button><button class="${S.left?"on":""}" onclick="setLeft(true)">Remaining</button></div></div><div class="bar"><i style="width:${pct}%"></i></div></div>
+<div class="card"><h3>Macros</h3>${pb("Protein",T.p,G.P,"--p")}${pb("Carbs",T.c,G.C,"--c")}${pb("Fat",T.f,G.F,"--f")}<small style="margin-top:10px">Share of calories: protein ${sh(T.p,4)}%, carbs ${sh(T.c,4)}%, fat ${sh(T.f,9)}%</small></div>
+<div class="card"><h3>Fibre and other nutrients</h3>${nrow}<div class="row" style="margin-top:10px"><div><b>Total sugars</b><small>Includes natural sugars. Free sugars are counted above.</small></div><b>${r1(NT.su)} g</b></div>${L.length&&NM.su?`<small>${NM.su} of ${L.length} entries have no sugars data</small>`:""}</div>`}
 function openMeal(m){add.open=m;if(MEALS.includes(m))add.meal=m;add.id="";add.q="";try{history.pushState({m},"");mealPushed=true}catch(e){}render();scrollTo(0,0)}
 function closeMeal(){if(mealPushed){mealPushed=false;history.back();return}add.open=null;render();scrollTo(0,0)}
 window.addEventListener("popstate",()=>{mealPushed=false;if(add.open){add.open=null;render();scrollTo(0,0)}});
@@ -352,14 +375,19 @@ const NT={},NM={},NI={},G=goals(),K=S.target||2000;N.forEach(n=>{NT[n]=0;NM[n]=0
 const nt=cp().nt||NDEF;const NG=[["fi","Fibre",nt.fi,0],["sa","Saturates",K*nt.sa/100/9,1],["fr","Free sugars",K*nt.su/100/4,1],["sl","Salt",nt.sl,1]];
 const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3])+(L.length&&(NM[a[0]]||NI[a[0]])?`<small>${NM[a[0]]?`${NM[a[0]]} of ${L.length} entries have no ${a[1].toLowerCase()} data`:""}${NM[a[0]]&&NI[a[0]]?", ":""}${NI[a[0]]?`${NI[a[0]]} recipe${NI[a[0]]===1?"":"s"} only partly counted`:""}</small>`:"")).join("");
 const pct=Math.min(100,T.k/(S.target||1)*100),st=streakInfo();
+if(add.open==="nutrition")return nutScreen(L,T,G,K,NT,NM,nrow,pct);
 const dateCard=`<div class="card"><div style="display:flex;gap:6px;align-items:center"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" onchange="date=this.value||today();render()" style="flex:1"><button class="alt" onclick="shiftDay(1)">›</button></div>
 <div class="wkrow"><div class="wk">${st.wk.map(x=>`<button class="dot${x.l?" on":""}${x.d===date?" sel":""}" onclick="goDate('${x.d}')" aria-label="${x.d}"><i></i><span>${x.w}</span></button>`).join("")}</div>
 <div class="streak${st.n?"":" off"}${st.n>=3?" hot":""}" title="Days in a row with something logged">${FLAME}<div><b>${st.n}</b><small>day streak</small></div></div></div></div>`;
-const calCard=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div class="big">${S.left?r(Math.abs(S.target-T.k)):r(T.k)} <span>${S.left?(S.target>=T.k?"kcal left":"kcal over"):`of ${S.target} kcal`}</span></div>
-<div class="tg"><button class="${S.left?"on":""}" onclick="setLeft(true)">Left</button><button class="${S.left?"":"on"}" onclick="setLeft(false)">Eaten</button></div></div><div class="bar"><i style="width:${pct}%"></i></div>
-${pb("Protein",T.p,G.P,"--p")}${pb("Carbs",T.c,G.C,"--c")}${pb("Fat",T.f,G.F,"--f")}</div>`;
+const calCard=(()=>{const tg=S.target||0,rem=tg-T.k,over=rem<0,CI=2*Math.PI*48,AR=CI*.75,fr=Math.max(0,Math.min(1,T.k/(tg||1))),
+cen=S.left?r(Math.abs(rem)):r(T.k),cenL=S.left?(over?"Over":"Remaining"):"Consumed",sd=S.left?r(T.k):r(Math.abs(rem)),sdL=S.left?"Consumed":(over?"Over":"Remaining"),
+mb=(l,v,g,c)=>`<div class="mb"><span>${l}</span><div class="bar"><i style="width:${Math.min(100,v/(g||1)*100)}%;background:var(${c})"></i></div><b>${S.left?`${r(Math.abs(g-v))}g ${g>=v?"left":"over"}`:`${r(v)} / ${r(g)}g`}</b></div>`;
+return `<div class="card ov" onclick="openMeal('nutrition')"><div class="ovh"><h3>Nutrition overview</h3><span aria-hidden="true">›</span></div>
+<div class="ovg"><div><b>${sd}</b><small>${sdL}</small></div><div class="gauge"><svg viewBox="0 0 120 100" aria-hidden="true"><circle cx="60" cy="60" r="48" fill="none" stroke="var(--bd)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${AR} ${CI}" transform="rotate(135 60 60)"/>${fr>0?`<circle cx="60" cy="60" r="48" fill="none" stroke="var(${over?"--dn":"--ac"})" stroke-width="7" stroke-linecap="round" stroke-dasharray="${AR*fr} ${CI}" transform="rotate(135 60 60)"/>`:""}</svg><div class="gc"><b>${cen}</b><small>${cenL}</small></div></div><div><b>${r(tg)}</b><small>Target</small></div></div>
+<div class="mbs">${mb("Protein",T.p,G.P,"--p")}${mb("Fat",T.f,G.F,"--f")}${mb("Carbs",T.c,G.C,"--c")}</div>
+<div class="ovt"><div class="tg"><button class="${S.left?"":"on"}" onclick="event.stopPropagation();setLeft(false)">Consumed</button><button class="${S.left?"on":""}" onclick="event.stopPropagation();setLeft(true)">Remaining</button></div></div></div>`})();
 const oth=L.filter(l=>!MEALS.includes(l.meal));
-return dateCard+calCard+`<div class="card"><h3>Fibre and other nutrients</h3>${nrow}</div>`+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m))).join("")+(oth.length?mealCard("Other",oth):"")}
+return dateCard+calCard+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m))).join("")+(oth.length?mealCard("Other",oth):"")}
 function prev(){const it=items().find(i=>i.id===add.id);[["#prev",add.amt],["#prev2",add.amt2]].forEach(([s,a])=>{const e=$(s);if(!e)return;if(!it){e.textContent="";return}const g=gr(it,a),m=mac(it,g);e.textContent=`${r(g)} g: ${r(m.k)} kcal, P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}`})}
 function setProf(id){S.cur=id;add.id="";add.q="";try{localStorage.setItem("plate_cur",id)}catch(e){}render()}
 function renameProf(id,v){const p=S.profiles.find(x=>x.id===id);if(p&&v.trim()){p.name=v.trim();save();render()}}
@@ -493,12 +521,12 @@ const sel=PR.findIndex(a=>t.m==="pct"&&t.p===a[1]&&t.c===a[2]&&t.f===a[3]),pre=P
 const fields=t.m==="g"?inp("gp","Protein (g)")+inp("gc","Carbs (g)")+inp("gf","Fat (g)"):t.m==="kg"?inp("kg","Protein g per kg")+inp("c","Carbs % of the rest")+inp("f","Fat % of the rest"):inp("p","Protein %")+inp("c","Carbs %")+inp("f","Fat %");
 const kc=G.P*4+G.C*4+G.F*9,sum=t.m==="pct"?t.p+t.c+t.f:0;
 return `<div class="card" id="macros" style="border:2px solid var(--ac)"><h3>Macro targets for ${esc(cp().name)}</h3><small style="margin-bottom:8px">Presets show protein/carbs/fat as a share of calories. ${sel<0?"You’re using a custom split.":""}</small><div class="g2">${pre}</div><div class="seg">${md("pct","Percent")}${md("g","Grams")}${md("kg","Per kg")}</div><div class="g2">${fields}</div><div class="prev">Goals: protein ${r(G.P)} g, carbs ${r(G.C)} g, fat ${r(G.F)} g (${r(kc)} kcal)</div>${sum&&sum!==100?`<small style="color:var(--dn)">Percentages add up to ${sum}, not 100.</small>`:""}${t.m==="kg"&&!lastW()?'<small>Add your weight in the goal card above or in Charts. Until then, protein uses the percent split.</small>':""}${t.m==="g"&&Math.abs(kc-(S.target||2000))>25?`<small>That is ${r(Math.abs(kc-(S.target||2000)))} kcal ${kc>(S.target||2000)?"above":"below"} your calorie target.</small>`:""}<h3 style="margin-top:14px">Other nutrient targets</h3><div class="g2">${[["fi","Fibre (g)"],["sa","Saturates max (% of calories)"],["su","Free sugars max (% of calories)"],["sl","Salt max (g)"]].map(a=>`<div><small>${a[1]}</small><input type="number" inputmode="decimal" value="${(cp().nt||NDEF)[a[0]]}" onchange="setNT('${a[0]}',this.value)"></div>`).join("")}</div><small>Defaults follow UK guidance: fibre 30 g, saturates 11%, free sugars 5%, salt 6 g.</small></div>`}
-function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><small>Signed in as ${esc(ME.email)}. Use the profile menu at the top of any page to switch profile.</small><button class="alt" style="margin-top:10px" onclick="signOut()">Sign out</button></div>${vGoal()}<div class="card"><h3>Daily calorie target for ${esc(cp().name)}</h3><input type="number" inputmode="numeric" value="${S.target}" onchange="S.target=+this.value||2000;save();render()"></div>${vMT()}
+function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><small>Signed in as ${esc(ME.email)}. Use the profile menu at the top of any page to switch profile.</small><button class="alt" style="margin-top:10px" onclick="signOut()">Sign out</button></div><div class="card"><h3>Library</h3><div class="seg"><button class="alt" onclick="goTab('foods')">Foods</button><button class="alt" onclick="goTab('rec')">Recipes</button></div></div>${vGoal()}<div class="card"><h3>Daily calorie target for ${esc(cp().name)}</h3><input type="number" inputmode="numeric" value="${S.target}" onchange="S.target=+this.value||2000;save();render()"></div>${vMT()}
 <div class="card"><h3>Past entries</h3><small style="margin-bottom:8px">After you set free sugars, fibre, saturates or salt on a food, one tap fills them in on entries you logged earlier. It uses the food’s current values and the amount you logged.</small><button onclick="recalcPast()">Recalculate past entries</button>${fixMsg?`<small style="margin-top:8px">${esc(fixMsg)}</small>`:""}</div>
 <div class="card"><h3>Backup</h3><small style="margin-bottom:8px">Your data is saved to your account. Export a copy now and then as a backup. To bring in an older backup, paste it here and choose which profile in the file is yours.</small><textarea id="bk" rows="5" placeholder="Export fills this box. Paste a backup here to import."></textarea>
 <small style="margin-top:10px">Import from file profile</small><select id="ip"><option value="0">First profile</option><option value="1">Second profile</option></select><div class="seg" style="margin-top:10px"><button onclick="exp()">Export</button><button class="alt" onclick="importLegacy()">Import</button></div><small id="bm"></small></div>`}
 function exp(){const b=$("#bk");b.value=JSON.stringify(S);b.select();try{navigator.clipboard.writeText(b.value);$("#bm").textContent="Exported and copied."}catch(e){$("#bm").textContent="Exported. Copy the text above."}}
 function render(){$("#pb").innerHTML=`<select aria-label="Profile" onchange="setProf(this.value)">${S.profiles.map(p=>`<option value="${p.id}"${p.id===S.cur?" selected":""}>${esc(p.name)}</option>`).join("")}</select><small id="sync">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;add.open=null;mealPushed=false;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
+document.querySelectorAll("nav button[data-t]").forEach(b=>b.onclick=()=>{$("#pm").hidden=true;tab=b.dataset.t;add.open=null;mealPushed=false;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
 boot();
 </script></body></html>
