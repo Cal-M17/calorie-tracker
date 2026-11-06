@@ -40,9 +40,9 @@ button.x{background:transparent;color:var(--dn);padding:6px 10px}
 .prev{font-weight:700;margin:6px 0 10px;min-height:22px}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
 nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;color:var(--mu);border-radius:0;padding:8px 4px 6px;font-size:11px;font-weight:600;line-height:1.1;min-height:56px}nav button.on{color:var(--ac)}
-nav button.pl span{width:46px;height:46px;border-radius:50%;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 4px 12px rgba(0,0,0,.22);border:3px solid var(--card)}
-nav button.pl svg{width:24px;height:24px}
-.pm{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}.pm[hidden]{display:none}
+nav button.pl span{width:56px;height:56px;border-radius:50%;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;margin-top:-22px;box-shadow:0 4px 12px rgba(0,0,0,.22);border:3px solid var(--card)}
+nav button.pl svg{width:30px;height:30px}
+.pm{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.pm[hidden]{display:none}
 .pmc{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:210px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
 .pmc button{display:flex;align-items:center;gap:10px;justify-content:flex-start;font-weight:600}
 .empty{color:var(--mu);padding:8px 0}
@@ -366,11 +366,18 @@ Dinner:ic('<circle cx="12" cy="12" r="4.5"/><path d="M3.5 4.5v4.2a1.6 1.6 0 0 0 
 Snacks:ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>'),
 Other:ic('<path d="M8 6.5h11M8 12h11M8 17.5h11"/><circle cx="4.5" cy="6.5" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="17.5" r=".8"/>')};
 let mealPushed=false;
-const PLUS=[["food","Add food",ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>')],["rec","Add recipe",ic('<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/>')],["wt","Add weight",ic('<rect x="3.5" y="4" width="17" height="16" rx="3.5"/><path d="M8 9.5a4 4 0 0 1 8 0z"/><path d="M12 9.5l1.8-2"/>')]];
+const PLUS=[["quick","Quick log",ic('<path d="M13 2.5L5 13.5h6.5l-1 8 8-11H12z"/>')],["food","Add food",ic('<path d="M12 8c-1.6-1.6-6.2-1.4-6.2 4.2 0 3.9 2.5 7.8 4.6 7.8.9 0 1-.5 1.6-.5s.7.5 1.6.5c2.1 0 4.6-3.9 4.6-7.8C18.2 6.6 13.6 6.4 12 8z"/><path d="M12 8c0-2 1.1-3.5 3.2-4.2"/>')],["rec","Add recipe",ic('<path d="M7 14.5a3.8 3.8 0 0 1-.9-7.4A4.6 4.6 0 0 1 12 4a4.6 4.6 0 0 1 5.9 3.1A3.8 3.8 0 0 1 17 14.5V20H7z"/><path d="M7 17.5h10"/>')],["wt","Add weight",ic('<rect x="3.5" y="4" width="17" height="16" rx="3.5"/><path d="M8 9.5a4 4 0 0 1 8 0z"/><path d="M12 9.5l1.8-2"/>')]];
 function plusMenu(){const m=$("#pm");if(!m.hidden){m.hidden=true;return}m.innerHTML=`<div class="pmc" onclick="event.stopPropagation()">${PLUS.map(a=>`<button class="alt" onclick="plusGo('${a[0]}')">${a[2]}<span>${a[1]}</span></button>`).join("")}</div>`;m.hidden=false}
+function openQuick(){tab="today";add.open="quick";add.meal=autoMeal();add.id="";add.q="";try{history.pushState({q:1},"");mealPushed=true}catch(e){}render();scrollTo(0,0);setTimeout(()=>{const q=$("#q");if(q)q.focus({preventScroll:true})},0)}
+function setQMeal(v){if(!MEALS.includes(v))return;add.meal=v;add.id="";add.q="";render()}
+function quickScreen(L){const m=add.meal,E=L.filter(l=>l.meal===m),T=mealStats(E),day=mealStats(L),K=S.target||2000,dl=new Date(date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
+return `<div class="mtop"><button class="alt" onclick="closeMeal()">‹ Log</button><div class="mtl"><span class="mi">${PLUS[0][2]}</span><div><b>Quick log</b><small style="margin:0">${dl}</small></div></div></div>
+<div class="card mscr"><select aria-label="Meal" onchange="setQMeal(this.value)">${MEALS.map(x=>`<option${x===m?" selected":""}>${x}</option>`).join("")}</select><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:12px"><div class="big">${r(T.k)} <span>kcal</span></div><small style="margin:0;text-align:right">Day so far ${r(day.k)} of ${K}</small></div><div style="margin-top:10px">${msHTML(T)}</div></div>
+<div class="card">${addBox(m)}</div>
+<div class="card"><h3>${m} entries</h3>${E.length?entRows(E):'<div class="empty">Nothing logged yet.</div>'}</div>`}
 function closePlus(){$("#pm").hidden=true}
 function goTab(t){tab=t;add.open=null;mealPushed=false;render();scrollTo(0,0)}
-function plusGo(k){closePlus();goTab(k==="food"?"foods":k==="rec"?"rec":"chart");setTimeout(()=>{const e=k==="food"?$("#fn"):k==="wt"?$("#wk"):$("#app .card input");if(e){e.scrollIntoView({block:"center"});try{e.focus({preventScroll:true})}catch(x){}}},0)}
+function plusGo(k){closePlus();if(k==="quick"){openQuick();return}goTab(k==="food"?"foods":k==="rec"?"rec":"chart");setTimeout(()=>{const e=k==="food"?$("#fn"):k==="wt"?$("#wk"):$("#app .card input");if(e){e.scrollIntoView({block:"center"});try{e.focus({preventScroll:true})}catch(x){}}},0)}
 function nutScreen(L,T,G,K,NT,NM,nrow,pct){const dl=new Date(date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"}),sh=(g,m)=>T.k?r(g*m/T.k*100):0;
 return `<div class="mtop"><button class="alt" onclick="closeMeal()">‹ Log</button><div class="mtl"><div><b>Nutrition overview</b><small style="margin:0">${dl}</small></div></div></div>
 <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div class="big">${r(T.k)} <span>of ${K} kcal</span></div><div class="tg"><button class="${S.left?"":"on"}" onclick="setLeft(false)">Consumed</button><button class="${S.left?"on":""}" onclick="setLeft(true)">Remaining</button></div></div><div class="bar"><i style="width:${pct}%"></i></div></div>
@@ -389,6 +396,7 @@ return `<div class="mtop"><button class="alt" onclick="closeMeal()">‹ Log</but
 ${m==="Other"?"":`<div class="card">${addBox(m)}</div>`}
 <div class="card"><h3>Entries</h3>${E.length?entRows(E):'<div class="empty">Nothing logged yet.</div>'}</div>`}
 function vToday(){const L=S.log.filter(l=>l.date===date),T={k:0,p:0,c:0,f:0};L.forEach(l=>M.forEach(m=>T[m]+=l[m]));
+if(add.open==="quick")return quickScreen(L);
 if(add.open&&(MEALS.includes(add.open)||add.open==="Other"))return mealScreen(add.open,L);
 const NT={},NM={},NI={},G=goals(),K=S.target||2000;N.forEach(n=>{NT[n]=0;NM[n]=0;NI[n]=0;L.forEach(l=>{if(l[n]==null)NM[n]++;else{NT[n]+=l[n];if(l.inc&&l.inc[n])NI[n]++}})});
 const nt=cp().nt||NDEF;const NG=[["fi","Fibre",nt.fi,0],["sa","Saturates",K*nt.sa/100/9,1],["fr","Free sugars",K*nt.su/100/4,1],["sl","Salt",nt.sl,1]];
