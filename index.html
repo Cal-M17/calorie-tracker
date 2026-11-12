@@ -12,8 +12,8 @@
 <title>Plate tracker</title>
 <link rel="preconnect" href="https://olrghmfqjenejdjcuoar.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"></noscript>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap"></noscript>
 <style>
 :root{--bg:#f2f4f1;--card:#fff;--tx:#17211d;--mu:#64716b;--ac:#1f6f5c;--on:#fff;--bd:#dde3df;--p:#c2410c;--c:#1d4ed8;--f:#a16207;--dn:#b42318;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
@@ -64,9 +64,14 @@ body:not(.ready) nav{display:none}
 .gauge{position:relative;width:150px}.gauge svg{display:block;width:100%;height:auto}
 .gc{position:absolute;left:0;right:0;top:58%;transform:translateY(-50%);text-align:center}.gc b{font-size:34px}
 .mbs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mb{text-align:center}.mb>span{color:var(--mu);font-size:14px}.mb .bar{margin:6px 0}.mb b{font-size:13px;font-weight:600;white-space:nowrap}
+.gz{position:relative;width:100%;max-width:290px;margin:6px auto 0}.gz svg{display:block;width:100%;height:auto}
+.gz-c{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);text-align:center;width:62%}.gz-c b{display:block;font-family:"Fraunces",Georgia,"Times New Roman",serif;font-weight:600;font-size:clamp(40px,14vw,54px);line-height:1;letter-spacing:-.02em;font-variant-numeric:lining-nums}.gz-c b.over{color:var(--dn)}.gz-c span{display:block;margin-top:6px;font-weight:700;font-size:15px}
+.gz-g{position:absolute;left:0;right:0;bottom:3%;text-align:center;color:var(--mu);font-size:14px;margin:0}
+.lg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:10px 0 0;color:var(--mu);font-size:14px}.lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.mbs{border-top:1px solid var(--bd);margin-top:16px;padding-top:16px}.mb>span{color:var(--tx);font-weight:700}.mb b{color:var(--mu)}
 .ovt{display:flex;justify-content:center;margin-top:14px}.ovt .tg button{padding:7px 16px;font-size:13px}
 .wkrow{display:flex;align-items:center;gap:10px;margin-top:14px}
-.wk{display:flex;flex:1;justify-content:space-between}
+.wk{display:flex;flex:1;justify-content:space-between;touch-action:pan-y;user-select:none;-webkit-user-select:none}.alt:disabled{opacity:.35;pointer-events:none}
 .dot{background:none;color:var(--mu);border:0;padding:2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500}
 .dot i{width:18px;height:18px;border-radius:50%;border:2px solid var(--bd);display:block}
 .dot.on i{background:var(--ac);border-color:var(--ac)}
@@ -349,8 +354,16 @@ const pb=(l,v,g,c,mx)=>`<div style="margin-top:10px"><div style="display:flex;ju
 const FLAME='<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><defs><linearGradient id="flg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3bf"/><stop offset="1" stop-color="#ffd8a8"/></linearGradient></defs><path d="M12 1.5c.6 3.2 2.6 4.6 4.3 6.6 1.5 1.8 2.7 3.9 2.7 6.4A7 7 0 0 1 5 14.5c0-2 .8-3.6 2-5 .3 1.6 1 2.6 2.1 3.1C8.6 9 9.5 4.8 12 1.5z" fill="url(#flg)"/><path d="M12 22a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1.1-2.7 2-3.7.5-.6.9-1.2 1.1-2 1.6 1.4 3.7 3.2 3.7 5.7A3.4 3.4 0 0 1 12 22z" fill="#ea580c" opacity=".55"/></svg>';
 function mealStats(E){const T={k:0,p:0,c:0,f:0,fi:0};E.forEach(l=>{T.k+=l.k||0;T.p+=l.p||0;T.c+=l.c||0;T.f+=l.f||0;T.fi+=l.fi||0});return T}
 function streakInfo(){const ds=new Set(cp().log.map(l=>l.date)),iso=d=>d.toISOString().slice(0,10);let d=new Date(today()+"T12:00:00");if(!ds.has(iso(d)))d.setDate(d.getDate()-1);let n=0;while(ds.has(iso(d))){n++;d.setDate(d.getDate()-1)}
-const wk=[];for(let i=6;i>=0;i--){const x=new Date(today()+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"})})}return{n,wk}}
-function goDate(d){date=d;render()}
+const wk=[];for(let i=6;i>=0;i--){const x=new Date(wkEnd+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"})})}return{n,wk}}
+let wkEnd=today(),swipeT=0,swX=null,swY=0;
+const isoD=d=>d.toISOString().slice(0,10),addD=(v,n)=>{const d=new Date(v+"T12:00:00");d.setDate(d.getDate()+n);return isoD(d)};
+function fitWk(){if(date>wkEnd)wkEnd=date;else if(date<addD(wkEnd,-6))wkEnd=addD(date,6)>today()?today():addD(date,6)}
+function setDate(v){v=v||today();if(v>today())v=today();date=v;fitWk();render()}
+function swipeWeek(n){let e=addD(wkEnd,7*n);if(e>today())e=today();if(e===wkEnd)return;wkEnd=e;render()}
+document.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest(".wk")){swX=e.clientX;swY=e.clientY}else swX=null});
+document.addEventListener("pointerup",e=>{if(swX===null)return;const dx=e.clientX-swX,dy=e.clientY-swY;swX=null;if(Math.abs(dx)>36&&Math.abs(dx)>1.5*Math.abs(dy)){swipeT=Date.now();swipeWeek(dx>0?-1:1)}});
+document.addEventListener("wheel",e=>{if(e.target.closest&&e.target.closest(".wk")&&Math.abs(e.deltaX)>Math.abs(e.deltaY)&&Math.abs(e.deltaX)>20){e.preventDefault();if(Date.now()-swipeT>400){swipeT=Date.now();swipeWeek(e.deltaX<0?-1:1)}}},{passive:false});
+function goDate(d){if(Date.now()-swipeT<350||d>today())return;date=d;render()}
 function setLeft(v){S.left=v;try{localStorage.setItem("plate_left",v?"1":"0")}catch(e){}render()}
 function entRows(E){return E.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")}
 function addBox(m){const sel=items().find(i=>i.id===add.id);
@@ -403,15 +416,24 @@ const nt=cp().nt||NDEF;const NG=[["fi","Fibre",nt.fi,0],["sa","Saturates",K*nt.s
 const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3])+(L.length&&(NM[a[0]]||NI[a[0]])?`<small>${NM[a[0]]?`${NM[a[0]]} of ${L.length} entries have no ${a[1].toLowerCase()} data`:""}${NM[a[0]]&&NI[a[0]]?", ":""}${NI[a[0]]?`${NI[a[0]]} recipe${NI[a[0]]===1?"":"s"} only partly counted`:""}</small>`:"")).join("");
 const pct=Math.min(100,T.k/(S.target||1)*100),st=streakInfo();
 if(add.open==="nutrition")return nutScreen(L,T,G,K,NT,NM,nrow,pct);
-const dateCard=`<div class="card"><div style="display:flex;gap:6px;align-items:center"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" onchange="date=this.value||today();render()" style="flex:1"><button class="alt" onclick="shiftDay(1)">›</button></div>
+const dateCard=`<div class="card"><div style="display:flex;gap:6px;align-items:center"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" max="${today()}" onchange="setDate(this.value)" style="flex:1"><button class="alt" onclick="shiftDay(1)"${date>=today()?" disabled":""}>›</button></div>
 <div class="wkrow"><div class="wk">${st.wk.map(x=>`<button class="dot${x.l?" on":""}${x.d===date?" sel":""}" onclick="goDate('${x.d}')" aria-label="${x.d}"><i></i><span>${x.w}</span></button>`).join("")}</div>
 <div class="streak${st.n?"":" off"}${st.n>=3?" hot":""}" title="Days in a row with something logged">${FLAME}<div><b>${st.n}</b><small>day streak</small></div></div></div></div>`;
-const calCard=(()=>{const tg=S.target||0,rem=tg-T.k,over=rem<0,CI=2*Math.PI*48,AR=CI*.75,fr=Math.max(0,Math.min(1,T.k/(tg||1))),
-cen=S.left?r(Math.abs(rem)):r(T.k),cenL=S.left?(over?"Over":"Remaining"):"Consumed",sd=S.left?r(T.k):r(Math.abs(rem)),sdL=S.left?"Consumed":(over?"Over":"Remaining"),
-mb=(l,v,g,c)=>`<div class="mb"><span>${l}</span><div class="bar"><i style="width:${Math.min(100,v/(g||1)*100)}%;background:var(${c})"></i></div><b>${S.left?`${r(Math.abs(g-v))}g ${g>=v?"left":"over"}`:`${r(v)} / ${r(g)}g`}</b></div>`;
+const calCard=(()=>{const tg=S.target||0,tot=T.k,rem=tg-tot,over=tg>0&&rem<0,left=S.left&&tg>0,
+MC={Breakfast:"var(--ac)",Lunch:"color-mix(in srgb,var(--ac) 74%,var(--card))",Dinner:"color-mix(in srgb,var(--ac) 56%,var(--card))",Snacks:"color-mix(in srgb,var(--ac) 40%,var(--card))"},
+hasO=L.some(l=>!MEALS.includes(l.meal)),
+parts=MEALS.concat(hasO?["Other"]:[]).map(m=>({m,k:mealStats(L.filter(l=>m==="Other"?!MEALS.includes(l.meal):l.meal===m)).k,c:MC[m]||"var(--mu)"})).filter(x=>x.k>0),
+base=Math.max(tg,tot,1),R=50,CI=2*Math.PI*R,AR=CI*.75,
+pt=f=>{const a=(135+270*f)*Math.PI/180;return[60+R*Math.cos(a),60+R*Math.sin(a)]},
+cap=(f,c)=>{const[x,y]=pt(f);return`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="5.5" fill="${c}"/>`};
+let acc=0;const segs=parts.map(x=>{const f=x.k/base,o=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${x.c}" stroke-width="11" stroke-dasharray="${AR*f} ${CI}" stroke-dashoffset="${-AR*acc}" transform="rotate(135 60 60)"/>`;acc+=f;return o}).join(""),
+caps=parts.length?cap(0,parts[0].c)+cap(acc,parts[parts.length-1].c):"",
+num=(left?Math.abs(rem):tot),lab=left?(over?"kcal over":"kcal left"):"kcal consumed",
+mb=(l,v,g,c)=>`<div class="mb"><span>${l}</span><div class="bar"><i style="width:${Math.min(100,v/(g||1)*100)}%;background:var(${c})"></i></div><b>${S.left?`${r(Math.abs(g-v))}g ${g>=v?"left":"over"}`:`${r(v)}g / ${r(g)}g`}</b></div>`;
 return `<div class="card ov" onclick="openMeal('nutrition')"><div class="ovh"><h3>Nutrition overview</h3><span aria-hidden="true">›</span></div>
-<div class="ovg"><div><b>${sd}</b><small>${sdL}</small></div><div class="gauge"><svg viewBox="0 0 120 100" aria-hidden="true"><circle cx="60" cy="60" r="48" fill="none" stroke="var(--bd)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${AR} ${CI}" transform="rotate(135 60 60)"/>${fr>0?`<circle cx="60" cy="60" r="48" fill="none" stroke="var(${over?"--dn":"--ac"})" stroke-width="7" stroke-linecap="round" stroke-dasharray="${AR*fr} ${CI}" transform="rotate(135 60 60)"/>`:""}</svg><div class="gc"><b>${cen}</b><small>${cenL}</small></div></div><div><b>${r(tg)}</b><small>Target</small></div></div>
-<div class="mbs">${mb("Protein",T.p,G.P,"--p")}${mb("Fat",T.f,G.F,"--f")}${mb("Carbs",T.c,G.C,"--c")}</div>
+<div class="gz"><svg viewBox="0 0 120 104" aria-hidden="true"><circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--bd)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${AR} ${CI}" transform="rotate(135 60 60)"/>${segs}${caps}</svg><div class="gz-c"><b class="${left&&over?"over":""}">${r(num).toLocaleString("en-GB")}</b><span>${lab}</span></div>${tg?`<small class="gz-g">of ${r(tg).toLocaleString("en-GB")} goal</small>`:""}</div>
+<div class="lg">${parts.length?parts.map(x=>`<span><i style="background:${x.c}"></i>${x.m} ${r(x.k)}</span>`).join(""):"<span>Nothing logged yet</span>"}</div>
+<div class="mbs">${mb("Carbs",T.c,G.C,"--c")}${mb("Protein",T.p,G.P,"--p")}${mb("Fat",T.f,G.F,"--f")}</div>
 <div class="ovt"><div class="tg"><button class="${S.left?"":"on"}" onclick="event.stopPropagation();setLeft(false)">Consumed</button><button class="${S.left?"on":""}" onclick="event.stopPropagation();setLeft(true)">Remaining</button></div></div></div>`})();
 const oth=L.filter(l=>!MEALS.includes(l.meal));
 return dateCard+calCard+MEALS.map(m=>mealCard(m,L.filter(l=>l.meal===m))).join("")+(oth.length?mealCard("Other",oth):"")}
@@ -442,8 +464,8 @@ const other=()=>S.profiles.find(p=>p.id!==cp().id)||cp();
 const uf=(it,u)=>{const x=(it.units||[]).find(y=>y.u===u);return x?x.f:1};
 const gr=(it,a)=>(+a||0)*uf(it,add.u);
 function entLabel(it,a,u){const x=+a||0,b=x*uf(it,u),gm=it.bs==="s"?(it.sgw>0?b*it.sgw:0):it.bs==="ml"?0:b;if(u==="g")return `${r(x)} g`;const t=u==="serving"?`${r1(x)} serving${x===1?"":"s"}`:`${r1(x)} ${u}`;return gm>0&&u!=="ml"?`${t} (${r(gm)} g)`:t}
-function shiftDay(n){const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+n);date=d.toISOString().slice(0,10);render()}
-function goToday(){date=today();render()}
+function shiftDay(n){setDate(addD(date,n))}
+function goToday(){date=today();wkEnd=today();render()}
 function toggleLeft(){S.left=!S.left;try{localStorage.setItem("plate_left",S.left?"1":"0")}catch(e){}render()}
 function setMeal(m){add.meal=m;render()}
 function setAlt(v){add.alt=v;add.amt2=add.amt;render()}
