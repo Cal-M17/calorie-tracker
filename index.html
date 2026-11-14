@@ -71,12 +71,12 @@ body:not(.ready) nav{display:none}
 .mbs{border-top:1px solid var(--bd);margin-top:16px;padding-top:16px}.mb>span{color:var(--tx);font-weight:700}.mb b{color:var(--mu)}
 .ovt{display:flex;justify-content:center;margin-top:14px}.ovt .tg button{padding:7px 16px;font-size:13px}
 .wkrow{display:flex;align-items:center;gap:10px;margin-top:14px}
-.wk{display:flex;flex:1;justify-content:space-between;touch-action:pan-y;user-select:none;-webkit-user-select:none}.alt:disabled{opacity:.35;pointer-events:none}
-.dot{background:none;color:var(--mu);border:0;padding:2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500}
+.wk{display:flex;flex:1;min-width:0;position:relative;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding:6px 0;margin:-6px 0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}.wk::-webkit-scrollbar{display:none}.alt:disabled{opacity:.35;pointer-events:none}
+.dot{flex:0 0 calc(100%/7);scroll-snap-align:start;background:none;color:var(--mu);border:0;padding:2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:500}
 .dot i{width:18px;height:18px;border-radius:50%;border:2px solid var(--bd);display:block}
 .dot.on i{background:var(--ac);border-color:var(--ac)}
 .dot.sel i{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--tx)}
-.dot.sel span{color:var(--tx);font-weight:700}
+.dot.sel span{color:var(--tx);font-weight:700}.dot em{font-style:normal;font-size:10px;line-height:1;white-space:nowrap}.dot.sel em{color:var(--tx);font-weight:700}
 .streak{display:flex;align-items:center;gap:6px;padding:6px 14px 6px 8px;border-radius:999px;background:linear-gradient(135deg,#f59e0b,#e8590c);color:#fff;box-shadow:0 4px 14px rgba(232,89,12,.35);flex:none}
 .streak b{display:block;font-size:20px;line-height:1}.streak small{display:block;color:inherit;opacity:.9;font-size:10px;margin:0}.streak>div{text-align:center}
 .streak.hot svg{animation:flick 1.6s ease-in-out infinite;transform-origin:50% 90%}
@@ -354,16 +354,13 @@ const pb=(l,v,g,c,mx)=>`<div style="margin-top:10px"><div style="display:flex;ju
 const FLAME='<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><defs><linearGradient id="flg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3bf"/><stop offset="1" stop-color="#ffd8a8"/></linearGradient></defs><path d="M12 1.5c.6 3.2 2.6 4.6 4.3 6.6 1.5 1.8 2.7 3.9 2.7 6.4A7 7 0 0 1 5 14.5c0-2 .8-3.6 2-5 .3 1.6 1 2.6 2.1 3.1C8.6 9 9.5 4.8 12 1.5z" fill="url(#flg)"/><path d="M12 22a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1.1-2.7 2-3.7.5-.6.9-1.2 1.1-2 1.6 1.4 3.7 3.2 3.7 5.7A3.4 3.4 0 0 1 12 22z" fill="#ea580c" opacity=".55"/></svg>';
 function mealStats(E){const T={k:0,p:0,c:0,f:0,fi:0};E.forEach(l=>{T.k+=l.k||0;T.p+=l.p||0;T.c+=l.c||0;T.f+=l.f||0;T.fi+=l.fi||0});return T}
 function streakInfo(){const ds=new Set(cp().log.map(l=>l.date)),iso=d=>d.toISOString().slice(0,10);let d=new Date(today()+"T12:00:00");if(!ds.has(iso(d)))d.setDate(d.getDate()-1);let n=0;while(ds.has(iso(d))){n++;d.setDate(d.getDate()-1)}
-const wk=[];for(let i=6;i>=0;i--){const x=new Date(wkEnd+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"})})}return{n,wk}}
-let wkEnd=today(),swipeT=0,swX=null,swY=0;
+const wk=[];for(let i=364;i>=0;i--){const x=new Date(today()+"T12:00:00");x.setDate(x.getDate()-i);wk.push({d:iso(x),l:ds.has(iso(x)),w:x.toLocaleDateString("en-GB",{weekday:"narrow"}),n:x.getDate()===1?"1 "+x.toLocaleDateString("en-GB",{month:"short"}):String(x.getDate())})}return{n,wk}}
+let wkOff=0,wkFollow=false;
 const isoD=d=>d.toISOString().slice(0,10),addD=(v,n)=>{const d=new Date(v+"T12:00:00");d.setDate(d.getDate()+n);return isoD(d)};
-function fitWk(){if(date>wkEnd)wkEnd=date;else if(date<addD(wkEnd,-6))wkEnd=addD(date,6)>today()?today():addD(date,6)}
-function setDate(v){v=v||today();if(v>today())v=today();date=v;fitWk();render()}
-function swipeWeek(n){let e=addD(wkEnd,7*n);if(e>today())e=today();if(e===wkEnd)return;wkEnd=e;render()}
-document.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest(".wk")){swX=e.clientX;swY=e.clientY}else swX=null});
-document.addEventListener("pointerup",e=>{if(swX===null)return;const dx=e.clientX-swX,dy=e.clientY-swY;swX=null;if(Math.abs(dx)>36&&Math.abs(dx)>1.5*Math.abs(dy)){swipeT=Date.now();swipeWeek(dx>0?-1:1)}});
-document.addEventListener("wheel",e=>{if(e.target.closest&&e.target.closest(".wk")&&Math.abs(e.deltaX)>Math.abs(e.deltaY)&&Math.abs(e.deltaX)>20){e.preventDefault();if(Date.now()-swipeT>400){swipeT=Date.now();swipeWeek(e.deltaX<0?-1:1)}}},{passive:false});
-function goDate(d){if(Date.now()-swipeT<350||d>today())return;date=d;render()}
+function setDate(v){v=v||today();if(v>today())v=today();date=v;wkFollow=true;render()}
+document.addEventListener("scroll",e=>{const w=e.target;if(w&&w.classList&&w.classList.contains("wk"))wkOff=Math.max(0,w.scrollWidth-w.clientWidth-w.scrollLeft)},true);
+function wkRestore(){const w=document.querySelector(".wk");if(!w)return;w.scrollLeft=w.scrollWidth-w.clientWidth-wkOff;if(!wkFollow)return;wkFollow=false;const d=w.querySelector(".dot.sel");if(!d)return;const l=d.offsetLeft,r=l+d.offsetWidth;if(l<w.scrollLeft||r>w.scrollLeft+w.clientWidth)w.scrollTo({left:l-(w.clientWidth-d.offsetWidth)/2,behavior:"smooth"})}
+function goDate(d){if(d>today())return;date=d;wkFollow=true;render()}
 function setLeft(v){S.left=v;try{localStorage.setItem("plate_left",v?"1":"0")}catch(e){}render()}
 function entRows(E){return E.map(l=>`<div class="row"><div><b>${esc(l.name)}</b><small>${esc(l.label)}, ${r(l.k)} kcal, P ${r1(l.p)} C ${r1(l.c)} F ${r1(l.f)}</small></div><button class="x" onclick="delLog('${l.id}')">Delete</button></div>`).join("")}
 function addBox(m){const sel=items().find(i=>i.id===add.id);
@@ -417,7 +414,7 @@ const nrow=NG.map(a=>pb(a[1],NT[a[0]],a[2],a[3]&&NT[a[0]]>a[2]?"--dn":"--ac",a[3
 const pct=Math.min(100,T.k/(S.target||1)*100),st=streakInfo();
 if(add.open==="nutrition")return nutScreen(L,T,G,K,NT,NM,nrow,pct);
 const dateCard=`<div class="card"><div style="display:flex;gap:6px;align-items:center"><button class="alt" onclick="shiftDay(-1)">‹</button><input type="date" value="${date}" max="${today()}" onchange="setDate(this.value)" style="flex:1"><button class="alt" onclick="shiftDay(1)"${date>=today()?" disabled":""}>›</button></div>
-<div class="wkrow"><div class="wk">${st.wk.map(x=>`<button class="dot${x.l?" on":""}${x.d===date?" sel":""}" onclick="goDate('${x.d}')" aria-label="${x.d}"><i></i><span>${x.w}</span></button>`).join("")}</div>
+<div class="wkrow"><div class="wk">${st.wk.map(x=>`<button class="dot${x.l?" on":""}${x.d===date?" sel":""}" onclick="goDate('${x.d}')" aria-label="${x.d}"><i></i><span>${x.w}</span><em>${x.n}</em></button>`).join("")}</div>
 <div class="streak${st.n?"":" off"}${st.n>=3?" hot":""}" title="Days in a row with something logged">${FLAME}<div><b>${st.n}</b><small>day streak</small></div></div></div></div>`;
 const calCard=(()=>{const tg=S.target||0,tot=T.k,rem=tg-tot,over=tg>0&&rem<0,left=S.left&&tg>0,
 MC={Breakfast:"var(--ac)",Lunch:"color-mix(in srgb,var(--ac) 74%,var(--card))",Dinner:"color-mix(in srgb,var(--ac) 56%,var(--card))",Snacks:"color-mix(in srgb,var(--ac) 40%,var(--card))"},
@@ -465,7 +462,7 @@ const uf=(it,u)=>{const x=(it.units||[]).find(y=>y.u===u);return x?x.f:1};
 const gr=(it,a)=>(+a||0)*uf(it,add.u);
 function entLabel(it,a,u){const x=+a||0,b=x*uf(it,u),gm=it.bs==="s"?(it.sgw>0?b*it.sgw:0):it.bs==="ml"?0:b;if(u==="g")return `${r(x)} g`;const t=u==="serving"?`${r1(x)} serving${x===1?"":"s"}`:`${r1(x)} ${u}`;return gm>0&&u!=="ml"?`${t} (${r(gm)} g)`:t}
 function shiftDay(n){setDate(addD(date,n))}
-function goToday(){date=today();wkEnd=today();render()}
+function goToday(){date=today();wkOff=0;wkFollow=true;render()}
 function toggleLeft(){S.left=!S.left;try{localStorage.setItem("plate_left",S.left?"1":"0")}catch(e){}render()}
 function setMeal(m){add.meal=m;render()}
 function setAlt(v){add.alt=v;add.amt2=add.amt;render()}
@@ -594,7 +591,7 @@ function vMore(){return `<h2>Settings</h2><div class="card"><h3>Account</h3><sma
 <div class="card"><h3>Backup</h3><small style="margin-bottom:8px">Your data is saved to your account. Export a copy now and then as a backup. To bring in an older backup, paste it here and choose which profile in the file is yours.</small><textarea id="bk" rows="5" placeholder="Export fills this box. Paste a backup here to import."></textarea>
 <small style="margin-top:10px">Import from file profile</small><select id="ip"><option value="0">First profile</option><option value="1">Second profile</option></select><div class="seg" style="margin-top:10px"><button onclick="exp()">Export</button><button class="alt" onclick="importLegacy()">Import</button></div><small id="bm"></small></div>`}
 function exp(){const b=$("#bk");b.value=JSON.stringify(S);b.select();try{navigator.clipboard.writeText(b.value);$("#bm").textContent="Exported and copied."}catch(e){$("#bm").textContent="Exported. Copy the text above."}}
-function render(){$("#pb").innerHTML=`<select aria-label="Profile" onchange="setProf(this.value)">${S.profiles.map(p=>`<option value="${p.id}"${p.id===S.cur?" selected":""}>${esc(p.name)}</option>`).join("")}</select><small id="sync">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();if(tab==="foods"){dsearch(dq);offShow()}}
+function render(){$("#pb").innerHTML=`<select aria-label="Profile" onchange="setProf(this.value)">${S.profiles.map(p=>`<option value="${p.id}"${p.id===S.cur?" selected":""}>${esc(p.name)}</option>`).join("")}</select><small id="sync">${syncTxt}</small>`;$("#app").innerHTML={today:vToday,foods:vFoods,rec:vRec,chart:vChart,chat:vChat,more:vMore}[tab]();document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));prev();sum();res();wkRestore();if(tab==="foods"){dsearch(dq);offShow()}}
 document.querySelectorAll("nav button[data-t]").forEach(b=>b.onclick=()=>{$("#pm").hidden=true;tab=b.dataset.t;add.open=null;mealPushed=false;render();scrollTo(0,tab==="chat"?document.body.scrollHeight:0)});
 boot();
 </script></body></html>
